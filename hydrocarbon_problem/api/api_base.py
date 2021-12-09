@@ -1,7 +1,7 @@
 from typing import Tuple
 import abc
 
-from aspen_rl.api.types import StreamSpecification, ColumnInputSpecification
+from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification
 
 class AspenDistillationAPI(abc.ABC):
     """Define Base Class for the Aspen-python interface. This defines the key methods that are

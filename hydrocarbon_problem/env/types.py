@@ -1,5 +1,5 @@
 from typing import NamedTuple, Sequence
-from aspen_rl.api.types import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
+from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
 
 
 """Types for the environment."""

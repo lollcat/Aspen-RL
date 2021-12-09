@@ -2,9 +2,9 @@ from typing import List
 import dm_env
 import numpy as np
 
-from aspen_rl.api.api_base import AspenDistillationAPI
-from aspen_rl.api.types import StreamSpecification, PerCompoundProperty
-from aspen_rl.env.types import Stream, Column, Observation
+from hydrocarbon_problem.api.api_base import AspenDistillationAPI
+from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty
+from hydrocarbon_problem.env.types import Stream, Column, Observation
 
 _DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=17.0,
                                                   propane=1110.0,

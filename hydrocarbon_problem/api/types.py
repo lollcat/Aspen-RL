@@ -20,6 +20,7 @@ class StreamSpecification(NamedTuple):
 
 
 class ColumnInputSpecification(NamedTuple):
+    feed_stage_location: int
     n_stages: int
     reflux_ratio: float
     reboil_ratio: float
@@ -28,3 +29,4 @@ class ColumnInputSpecification(NamedTuple):
 
 class ColumnOutputSpecification(NamedTuple):
     condensor_duty: float
+    reboiler_duty: float
