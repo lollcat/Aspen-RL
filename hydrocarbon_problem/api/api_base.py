@@ -29,6 +29,6 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self):
-        """Solves the flowsheet."""
+    def solve_flowsheet(self) -> bool:
+        """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError

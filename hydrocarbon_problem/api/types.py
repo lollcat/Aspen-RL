@@ -3,7 +3,7 @@ from typing import NamedTuple
 
 """Types for flowsheet properties used to help specify the api between Aspen and Python"""
 class PerCompoundProperty(NamedTuple):
-    """Defines a type for each compound"""
+    """Defines a type for each compound."""
     ethane: float
     propane: float
     isobutane: float
@@ -20,13 +20,16 @@ class StreamSpecification(NamedTuple):
 
 
 class ColumnInputSpecification(NamedTuple):
+    """Specification of the column (which along with the input stream, fully specifies the
+    flowsheet)."""
     feed_stage_location: int
     n_stages: int
-    reflux_ratio: float
-    reboil_ratio: float
-    pressure_drop_factor: float
+    reflux_ratio: float  # between 0 and 1
+    reboil_ratio: float  # between 0 and 1
+    pressure_drop: float  # atm
 
 
 class ColumnOutputSpecification(NamedTuple):
+    """All relevant output information from the simulated column (besides output stream info)."""
     condensor_duty: float
     reboiler_duty: float
