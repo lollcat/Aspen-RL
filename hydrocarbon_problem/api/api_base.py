@@ -3,7 +3,8 @@ import abc
 
 from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification
 
-class AspenDistillationAPI(abc.ABC):
+
+class BaseAspenDistillationAPI(abc.ABC):
     """Define Base Class for the Aspen-python interface. This defines the key methods that are
     called by the reinforcement learning environment."""
 

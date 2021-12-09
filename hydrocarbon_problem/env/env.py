@@ -2,7 +2,7 @@ from typing import List
 import dm_env
 import numpy as np
 
-from hydrocarbon_problem.api.api_base import AspenDistillationAPI
+from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty
 from hydrocarbon_problem.env.types import Stream, Column, Observation
 
@@ -17,7 +17,7 @@ DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
 
 class AspenDistillation(dm_env.Environment):
-    flowsheet_api: AspenDistillationAPI  # TODO: add actual API here
+    flowsheet_api: BaseAspenDistillationAPI  # TODO: add actual API here
 
     def __init__(self, initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC):
         initial_feed = Stream(specification=initial_feed_spec, is_product=False, number=0)
