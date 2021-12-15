@@ -1,7 +1,8 @@
 from typing import Tuple
 import abc
 
-from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification
+from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification, \
+    ColumnOutputSpecification
 
 
 class BaseAspenDistillationAPI(abc.ABC):
@@ -19,8 +20,8 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_simulated_column_properties(self) -> Tuple[StreamSpecification, StreamSpecification]:
-        """Returns the stream specification for the top and bottom output."""
+    def get_simulated_column_properties(self) -> ColumnOutputSpecification:
+        """Returns the specification of the simulated column."""
         raise NotImplementedError
 
     @abc.abstractmethod

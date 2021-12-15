@@ -1,10 +1,13 @@
 from typing import List
 import dm_env
+from collections import deque
 import numpy as np
+from scipy.special import expit
 
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
-from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty
-from hydrocarbon_problem.env.types import Stream, Column, Observation
+from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty, \
+    ColumnInputSpecification, ColumnOutputSpecification
+from hydrocarbon_problem.env.types import Stream, Column, Observation, Done
 
 _DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=17.0,
                                                   propane=1110.0,
@@ -17,24 +20,107 @@ DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
 
 class AspenDistillation(dm_env.Environment):
+    """
+    Action space assumes unbounded continuous values. This environment has a very not-standard
+    step function (2 streams created from 1 stream - # TODO describe).
+    """
     flowsheet_api: BaseAspenDistillationAPI  # TODO: add actual API here
 
-    def __init__(self, initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC):
-        initial_feed = Stream(specification=initial_feed_spec, is_product=False, number=0)
-        self.initial_feed = initial_feed
-        self.stream_table: List[Stream, ...] = [initial_feed]
-        self.column_table: List[Column, ...] = []
+    def __init__(self, initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC,
+                 max_n_stages=100, min_pressure=0.1, max_pressure=10.0,
+                 max_steps = 30):
+        # hyper-parameters of the distillation environment
+        self._max_n_stages = max_n_stages
+        # Note: Stream number matches steam index in self._stream_table.
+        self._initial_feed = Stream(specification=initial_feed_spec, is_product=False, number=0)
+        self._min_pressure = min_pressure  # atm
+        self._max_pressure = max_pressure  # atm
+        self._max_n_steps = max_steps  # Maximum number of environment steps.
+
+        # Initialise stream and column tables.
+        self._stream_table: List[Stream, ...] = [self._initial_feed]
+        self._column_table: List[Column, ...] = []
+        self._stream_numbers_yet_to_be_acted_on = deque()
+        self._current_stream_number = self._initial_feed.number
+        self._steps = 0
 
 
     def reset(self) -> dm_env.TimeStep:
-        self.stream_table = [self.initial_feed]
-        self.column_table = []
-        observation = Observation(self.initial_feed.specification)
-        # TODO: current place of work
-        # timestep = dm_env.TimeStep(step_type=dm_env.StepType.FIRST, observation=)
+        self._stream_table: List[Stream, ...] = [self._initial_feed]
+        self._column_table: List[Column, ...] = []
+        self._stream_numbers_yet_to_be_acted_on = deque()
+        self._current_stream_number = self._initial_feed.number
+        observation = Observation([self._initial_feed.specification])
+        timestep = dm_env.TimeStep(step_type=dm_env.StepType.FIRST, observation=observation,
+                                   reward=None, discount=None)
+        self._steps = 0
+        return timestep
+
+    def step(self, action: np.ndarray) -> dm_env.TimeStep:
+        self._steps += 1
+        column_input_spec = self._action_to_column_spec(action)
+        self.flowsheet_api.set_column_specification(column_input_spec)
+        self.flowsheet_api.solve_flowsheet()
+        tops_stream, bottoms_stream, column_output_spec = self._get_simulated_flowsheet_info()
+        self._manage_environment_internals(tops_stream, bottoms_stream, column_output_spec)
+        reward = self.calculate_reward(tops_stream, bottoms_stream, column_output_spec)
+        upcoming_stream = self._get_upcoming_stream()
+        observation = Observation(
+            created_states=(self._stream_to_observation(tops_stream),
+                            self._stream_to_observation(bottoms_stream)),
+            upcoming_state=self._stream_to_observation(upcoming_stream))
+        done_overall = self._steps >= self._max_n_steps
+        done = Done((tops_stream.is_product, bottoms_stream.is_product), done_overall)
+        timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
+        timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
+                                   reward=reward, discount=done)
+        return timestep
 
 
-    def stream_specification_to_observation(self, stream_specification: StreamSpecification) -> \
-            np.array:
-        pass
+
+    def _action_to_column_spec(self, action: np.ndarray) -> ColumnInputSpecification:
+        """All actions are assumed to be unbounded and we then translate these into
+        the relevant values for the ColumnInputSpecification."""
+        n_stages = int(expit(action[0]) * self._max_n_stages + 0.5)
+        feed_stage_location = expit(action[1]) * n_stages
+        reflux_ratio = np.exp(action[2])
+        reboil_ratio = np.exp(action[3])
+        condensor_pressure = np.interp(expit(action[1]), [0, 1], [self._min_pressure,
+                                                                  self._max_pressure])
+        return ColumnInputSpecification(n_stages=n_stages, feed_stage_location=feed_stage_location,
+                                        reflux_ratio=reflux_ratio, reboil_ratio=reboil_ratio,
+                                        condensor_pressure=condensor_pressure)
+
+    def _get_simulated_flowsheet_info(self):
+        """Grabs relevant info from simualted flowsheet."""
+        tops_stream_spec, bottoms_stream_spec = \
+            self.flowsheet_api.get_output_stream_specifications()
+        tops_stream = self._stream_specification_to_stream(tops_stream_spec)
+        bottoms_stream = self._stream_specification_to_stream(bottoms_stream_spec)
+        column_output_spec = self.flowsheet_api.get_simulated_column_properties()
+        return tops_stream, bottoms_stream, column_output_spec
+
+    def _manage_environment_internals(self, tops_stream_spec: Stream, bottoms_stream_spec: Stream,
+                         column_output_spec: ColumnOutputSpecification) -> None:
+        """Add info to stream and column table, and add streams that don't meet product spec to
+        self._stream_numbers_yet_to_be_acted_on"""
+        raise NotImplementedError# TODO
+
+    def _get_upcoming_stream(self) -> Stream:
+        stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        stream = self._stream_table[stream_number]
+        return stream
+
+    def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
+        raise NotImplementedError# TODO
+
+    def calculate_reward(self, tops_stream_spec: Stream, bottoms_stream_spec: Stream,
+                         column_output_spec: ColumnOutputSpecification) -> float:
+        """Calculate potential revenue from selling top streams and bottoms streams, and compare
+        relative to selling the input stream, subtract TAC and normalise."""
+        raise NotImplementedError # TODO
+
+
+    def _stream_to_observation(self, stream: Stream) -> np.array:
+        raise NotImplementedError # TODO
 

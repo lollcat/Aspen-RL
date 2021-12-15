@@ -22,14 +22,15 @@ class StreamSpecification(NamedTuple):
 class ColumnInputSpecification(NamedTuple):
     """Specification of the column (which along with the input stream, fully specifies the
     flowsheet)."""
-    feed_stage_location: int
     n_stages: int
-    reflux_ratio: float  # between 0 and 1
-    reboil_ratio: float  # between 0 and 1
-    pressure_drop: float  # atm
+    feed_stage_location: int
+    reflux_ratio: float  # between 0 and infinity
+    reboil_ratio: float  # between 0 and infinity
+    condensor_pressure: float  # atm
 
 
 class ColumnOutputSpecification(NamedTuple):
     """All relevant output information from the simulated column (besides output stream info)."""
     condensor_duty: float
     reboiler_duty: float
+    # TODO: sizing info?

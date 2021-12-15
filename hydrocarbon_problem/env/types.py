@@ -1,9 +1,19 @@
-from typing import NamedTuple, Sequence
+from typing import NamedTuple, Tuple
+
+import numpy as np
+
 from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
 
 
 """Types for the environment."""
-Observation = Sequence[StreamSpecification]  # 1 stream if initial state, otherwise 2 streams
+class Observation(NamedTuple):
+    created_states: Tuple[np.ndarray, np.ndarray]  # the states created by the current action.
+    upcoming_state: np.ndarray  # the next state that will be acted upon
+
+class Done(NamedTuple):
+    created_states: Tuple[bool, bool]  # if the created streams are product or still need to be
+    # separated.
+    overall: bool # the whole env loop is done
 
 class Stream(NamedTuple):
     """Defines stream type, which are managed within the stream table."""
