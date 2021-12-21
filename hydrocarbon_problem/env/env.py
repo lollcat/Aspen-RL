@@ -27,9 +27,11 @@ class AspenDistillation(dm_env.Environment):
     flowsheet_api: BaseAspenDistillationAPI  # TODO: add actual API here
 
     def __init__(self, initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC,
-                 max_n_stages=100, min_pressure=0.1, max_pressure=10.0,
-                 max_steps = 30):
+                 min_n_stages: int = 2, max_n_stages: int = 100, min_pressure: float = 0.1,
+                 max_pressure: float = 10.0,
+                 max_steps: int = 30):
         # hyper-parameters of the distillation environment
+        self._min_n_stages = min_n_stages
         self._max_n_stages = max_n_stages
         # Note: Stream number matches steam index in self._stream_table.
         self._initial_feed = Stream(specification=initial_feed_spec, is_product=False, number=0)
@@ -43,6 +45,19 @@ class AspenDistillation(dm_env.Environment):
         self._stream_numbers_yet_to_be_acted_on = deque()
         self._current_stream_number = self._initial_feed.number
         self._steps = 0
+
+    
+    def observation_spec(self):
+        pass
+
+    def action_spec(self):
+        pass
+
+    def reward_spec(self):
+        pass
+
+    def discount_spec(self):
+        pass
 
 
     def reset(self) -> dm_env.TimeStep:
@@ -81,7 +96,8 @@ class AspenDistillation(dm_env.Environment):
     def _action_to_column_spec(self, action: np.ndarray) -> ColumnInputSpecification:
         """All actions are assumed to be unbounded and we then translate these into
         the relevant values for the ColumnInputSpecification."""
-        n_stages = int(expit(action[0]) * self._max_n_stages + 0.5)
+        n_stages = round(np.interp(expit(action[0]), [0, 1], [self._min_n_stages,
+                                                             self._max_n_stages]) + 0.5)
         feed_stage_location = expit(action[1]) * n_stages
         reflux_ratio = np.exp(action[2])
         reboil_ratio = np.exp(action[3])

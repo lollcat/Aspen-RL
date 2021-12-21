@@ -33,4 +33,12 @@ class ColumnOutputSpecification(NamedTuple):
     """All relevant output information from the simulated column (besides output stream info)."""
     condensor_duty: float
     reboiler_duty: float
+    diameter: float
     # TODO: sizing info?
+
+
+class ProductSpecification(NamedTuple):
+    """Definition of a product stream"""
+    # we could change this to a PerCompoundProperty if we want to have separate
+    # purities for each compound.
+    purity: float
