@@ -63,6 +63,7 @@ def test_api(api: BaseAspenDistillationAPI):
 
 
 if __name__ == '__main__':
+    # example run with the fake distillation api
     from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
     api = FakeDistillationAPI()
     test_api(api)
