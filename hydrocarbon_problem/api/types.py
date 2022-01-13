@@ -1,5 +1,6 @@
-from typing import NamedTuple
+from typing import NamedTuple, Tuple
 
+Array = Tuple[float, ...]
 
 """Types for flowsheet properties used to help specify the api between Aspen and Python"""
 class PerCompoundProperty(NamedTuple):
@@ -33,8 +34,9 @@ class ColumnOutputSpecification(NamedTuple):
     """All relevant output information from the simulated column (besides output stream info)."""
     condensor_duty: float
     reboiler_duty: float
-    diameter: float
-    # TODO: sizing info?
+    molar_weight_per_stage: Array
+    vapor_flow_per_stage: Array
+    temperature_per_stage: Array
 
 
 class ProductSpecification(NamedTuple):

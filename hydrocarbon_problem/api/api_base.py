@@ -20,7 +20,9 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_simulated_column_properties(self) -> ColumnOutputSpecification:
+    def get_simulated_column_properties(self, column_input_specification:
+    ColumnInputSpecification) -> \
+            ColumnOutputSpecification:
         """Returns the specification of the simulated column."""
         raise NotImplementedError
 

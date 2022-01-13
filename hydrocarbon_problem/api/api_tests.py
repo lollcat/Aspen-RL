@@ -1,3 +1,6 @@
+import os
+print(os.getcwd())
+
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
@@ -34,8 +37,13 @@ def test_api(api: BaseAspenDistillationAPI):
     assert solved
 
     # retrieve values from the flowsheet
-    column_output_spec = api.get_simulated_column_properties()
+    column_output_spec = api.get_simulated_column_properties(fake_column_input_spec)
     assert isinstance(column_output_spec, ColumnOutputSpecification)
+    # check that the per stage properties of the column are of the correct length
+    assert len(column_output_spec.molar_weight_per_stage) == fake_column_input_spec.n_stages
+    assert len(column_output_spec.vapor_flow_per_stage) == fake_column_input_spec.n_stages
+    assert len(column_output_spec.temperature_per_stage) == fake_column_input_spec.n_stages
+
     tops, bottoms = api.get_output_stream_specifications()
     assert isinstance(tops, StreamSpecification)
     assert isinstance(bottoms, StreamSpecification)
