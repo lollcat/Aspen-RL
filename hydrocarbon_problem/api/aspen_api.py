@@ -117,6 +117,6 @@ class AspenAPI(BaseAspenDistillationAPI):
 
 
 if __name__ == '__main__':
+    from hydrocarbon_problem.api.api_tests import test_api
     aspen_api = AspenAPI()
-    test_stream = StreamSpecification
-    aspen_api.set_input_stream_specification(test_stream)
+    test_api(aspen_api)
