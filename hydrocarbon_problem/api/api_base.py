@@ -1,7 +1,7 @@
 from typing import Tuple
 import abc
 
-from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification, \
+from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
     ColumnOutputSpecification, ProductSpecification
 
 

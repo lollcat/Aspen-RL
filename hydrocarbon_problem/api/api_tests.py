@@ -2,7 +2,7 @@ import os
 print(os.getcwd())
 
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
-from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty, \
+from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
 
 def test_api(api: BaseAspenDistillationAPI):

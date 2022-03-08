@@ -5,9 +5,9 @@ import numpy as np
 from scipy.special import expit
 
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
-from hydrocarbon_problem.api.types import StreamSpecification, PerCompoundProperty, \
+from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification
-from hydrocarbon_problem.env.types import Stream, Column, Observation, Done
+from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done
 
 _DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=17.0,
                                                   propane=1110.0,

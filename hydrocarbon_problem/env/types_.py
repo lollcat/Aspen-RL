@@ -2,7 +2,7 @@ from typing import NamedTuple, Tuple
 
 import numpy as np
 
-from hydrocarbon_problem.api.types import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
+from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
 
 
 """Types for the environment."""
