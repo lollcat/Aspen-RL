@@ -1,0 +1,272 @@
+
+ BLOCK:  B1       MODEL: RADFRAC         
+ -------------------------------
+    INLETS   - S1       STAGE  10
+    OUTLETS  - S2       STAGE   1
+               S3       STAGE  20
+   PROPERTY OPTION SET:   PENG-ROB  STANDARD PR EQUATION OF STATE               
+
+                      ***  MASS AND ENERGY BALANCE  ***
+                                    IN              OUT        RELATIVE DIFF.
+    TOTAL BALANCE
+       MOLE(KMOL/SEC)            6.00000         6.00000         0.00000    
+       MASS(KG/SEC  )            334.714         334.714       -0.181715E-13
+       ENTHALPY(WATT    )      -0.730068E+09   -0.906470E+09    0.194603    
+
+                      ***  CO2 EQUIVALENT SUMMARY ***
+    FEED STREAMS CO2E             0.00000      KG/SEC          
+    PRODUCT STREAMS CO2E          0.00000      KG/SEC          
+    NET STREAMS CO2E PRODUCTION   0.00000      KG/SEC          
+    UTILITIES CO2E PRODUCTION     0.00000      KG/SEC          
+    TOTAL CO2E PRODUCTION         0.00000      KG/SEC          
+
+
+
+                         **********************
+                         ****  INPUT DATA  ****
+                         **********************
+
+   ****   INPUT PARAMETERS   ****
+
+    NUMBER OF STAGES                                        20
+    ALGORITHM OPTION                                      STANDARD    
+    ABSORBER OPTION                                       NO      
+    INITIALIZATION OPTION                                 STANDARD    
+    HYDRAULIC PARAMETER CALCULATIONS                      NO      
+    INSIDE LOOP CONVERGENCE METHOD                        BROYDEN 
+    DESIGN SPECIFICATION METHOD                           NESTED  
+    MAXIMUM NO. OF OUTSIDE LOOP ITERATIONS                  25
+    MAXIMUM NO. OF INSIDE LOOP ITERATIONS                   10
+    MAXIMUM NUMBER OF FLASH ITERATIONS                      30
+    FLASH TOLERANCE                                          0.000100000
+    OUTSIDE LOOP CONVERGENCE TOLERANCE                       0.000100000
+
+   ****   COL-SPECS   ****
+
+    MOLAR VAPOR DIST / TOTAL DIST                            0.0        
+    MOLAR REFLUX RATIO                                       2.00000    
+    MOLAR BOILUP RATIO                                       2.00000    
+
+   ****    PROFILES   ****
+
+    P-SPEC          STAGE   1  PRES, BAR                     1.00000    
+
+                          *******************
+                          ****  RESULTS  ****
+                          *******************
+
+
+   ***   COMPONENT SPLIT FRACTIONS   ***
+
+                             OUTLET STREAMS 
+                             --------------
+                  S2           S3      
+    COMPONENT:
+    ETHANE      1.0000       0.0000    
+    PROPANE     1.0000       .12232E-09
+    I-BUTANE    .99994       .61480E-04
+    N-BUTANE    .99641       .35904E-02
+    I-PENTAN    .55930E-03   .99944    
+    N-PENTAN    .66969E-04   .99993    
+
+ 
+   ***    SUMMARY OF KEY RESULTS    ***
+
+    TOP STAGE TEMPERATURE          C                       -61.4702     
+    BOTTOM STAGE TEMPERATURE       C                        30.9318     
+    TOP STAGE LIQUID FLOW          KMOL/SEC                  7.99395    
+    BOTTOM STAGE LIQUID FLOW       KMOL/SEC                  2.00303    
+    TOP STAGE VAPOR FLOW           KMOL/SEC                  0.0        
+    BOILUP VAPOR FLOW              KMOL/SEC                  4.00605    
+    MOLAR REFLUX RATIO                                       2.00000    
+    MOLAR BOILUP RATIO                                       2.00000    
+    CONDENSER DUTY (W/O SUBCOOL)   WATT                     -0.277824+09
+    REBOILER DUTY                  WATT                      0.101423+09
+
+   ****   MAXIMUM FINAL RELATIVE ERRORS   ****
+
+    DEW POINT                       0.56006E-04  STAGE= 12
+    BUBBLE POINT                    0.38977E-04  STAGE= 12
+    COMPONENT MASS BALANCE          0.45459E-06  STAGE=  8 COMP=ETHANE  
+    ENERGY BALANCE                  0.98700E-04  STAGE= 14
+
+
+   ****    PROFILES   ****
+
+   **NOTE** REPORTED VALUES FOR STAGE LIQUID AND VAPOR RATES ARE THE FLOWS
+            FROM THE STAGE INCLUDING ANY SIDE PRODUCT.
+
+                                          ENTHALPY
+ STAGE TEMPERATURE   PRESSURE             J/KMOL             HEAT DUTY
+       C             BAR            LIQUID       VAPOR        WATT    
+
+   1  -61.470        1.0000      -0.13907E+09 -0.92201E+08  -.27782+09
+   2  -19.840        1.0000      -0.15192E+09 -0.11590E+09            
+   3  -10.896        1.0000      -0.15291E+09 -0.12465E+09            
+   4  -8.9468        1.0000      -0.15294E+09 -0.12559E+09            
+   5  -8.0328        1.0000      -0.15311E+09 -0.12556E+09            
+   8  -1.9994        1.0000      -0.15992E+09 -0.12674E+09            
+   9   3.5997        1.0000      -0.16527E+09 -0.12852E+09            
+  10   9.6037        1.0000      -0.16622E+09 -0.13488E+09            
+  19   30.334        1.0000      -0.17533E+09 -0.15038E+09            
+  20   30.932        1.0000      -0.17504E+09 -0.15016E+09   .10142+09
+
+ STAGE     FLOW RATE                  FEED RATE               PRODUCT RATE
+            KMOL/SEC                   KMOL/SEC                 KMOL/SEC
+       LIQUID     VAPOR       LIQUID    VAPOR    MIXED      LIQUID    VAPOR
+   1  11.99      0.000                                        3.9969          
+   2  8.075      11.99                                                        
+   3  8.196      12.07                                                        
+   4  8.177      12.19                                                        
+   5  8.126      12.17                                                        
+   8  7.504      11.83                                                        
+   9  5.984      11.50                   6.0000                               
+  10  6.056      3.981                                                        
+  19  6.009      4.013                                                        
+  20  2.003      4.006                                        2.0030          
+
+    ****  MASS FLOW PROFILES  ****
+
+ STAGE     FLOW RATE                  FEED RATE               PRODUCT RATE
+            KG/SEC                     KG/SEC                   KG/SEC  
+       LIQUID     VAPOR       LIQUID    VAPOR    MIXED      LIQUID    VAPOR
+   1  570.7      0.000                                      190.2458          
+   2  452.8      570.7                                                        
+   3  469.7      643.0                                                        
+   4  471.1      659.9                                                        
+   5  470.3      661.4                                                        
+   8  463.7      656.5                                                        
+   9  388.4      653.9                 334.7135                               
+  10  399.0      243.9                                                        
+  19  433.2      288.8                                                        
+  20  144.5      288.7                                      144.4676          
+
+                         ****   MOLE-X-PROFILE     ****
+   STAGE     ETHANE        PROPANE       I-BUTANE      N-BUTANE      I-PENTAN
+      1    0.25019       0.25019       0.25017       0.24929       0.13993E-03
+      2    0.20347E-01   0.10668       0.34263       0.52932       0.88980E-03
+      3    0.63380E-02   0.48874E-01   0.30058       0.64100       0.26789E-02
+      4    0.53989E-02   0.34080E-01   0.25447       0.69726       0.70662E-02
+      5    0.52444E-02   0.30151E-01   0.21944       0.72217       0.17630E-01
+      8    0.48005E-02   0.23661E-01   0.13954       0.53740       0.18116    
+      9    0.44262E-02   0.19583E-01   0.10522       0.35880       0.27850    
+     10    0.29240E-03   0.47853E-02   0.77097E-01   0.35935       0.31199    
+     19    0.77651E-15   0.46019E-09   0.88646E-04   0.42276E-02   0.54721    
+     20    0.35330E-16   0.61066E-10   0.30694E-04   0.17925E-02   0.49897    
+
+                         ****   MOLE-X-PROFILE     ****
+   STAGE     N-PENTAN
+      1    0.16755E-04
+      2    0.13964E-03
+      3    0.52623E-03
+      4    0.17288E-02
+      5    0.53676E-02
+      8    0.11344    
+      9    0.23347    
+     10    0.24648    
+     19    0.44847    
+     20    0.49921    
+
+                         ****   MOLE-Y-PROFILE     ****
+   STAGE     ETHANE        PROPANE       I-BUTANE      N-BUTANE      I-PENTAN
+      1    0.86378       0.10141       0.21796E-01   0.13008E-01   0.17696E-05
+      2    0.25019       0.25019       0.25017       0.24929       0.13993E-03
+      3    0.96444E-01   0.15419       0.31202       0.43661       0.64153E-03
+      4    0.86276E-01   0.11487       0.28406       0.51259       0.18466E-02
+      5    0.85772E-01   0.10504       0.25306       0.55017       0.47921E-02
+      8    0.87885E-01   0.10219       0.19601       0.52223       0.61882E-01
+      9    0.90078E-01   0.10238       0.17798       0.43728       0.11825    
+     10    0.66533E-02   0.29436E-01   0.15815       0.53843       0.16757    
+     19    0.24921E-13   0.48777E-08   0.33435E-03   0.12538E-01   0.61460    
+     20    0.11471E-14   0.65976E-09   0.11762E-03   0.54451E-02   0.57134    
+
+                         ****   MOLE-Y-PROFILE     ****
+   STAGE     N-PENTAN
+      1    0.14448E-06
+      2    0.16755E-04
+      3    0.98957E-04
+      4    0.35922E-03
+      5    0.11667E-02
+      8    0.29800E-01
+      9    0.74024E-01
+     10    0.99765E-01
+     19    0.37253    
+     20    0.42310    
+
+                         ****   K-VALUES           ****
+   STAGE     ETHANE        PROPANE       I-BUTANE      N-BUTANE      I-PENTAN
+      1     3.4525       0.40533       0.87124E-01   0.52181E-01   0.12646E-01
+      2     12.296        2.3453       0.73016       0.47097       0.15726    
+      3     15.217        3.1549        1.0380       0.68113       0.23948    
+      4     15.980        3.3705        1.1163       0.73516       0.26132    
+      5     16.355        3.4837        1.1532       0.76184       0.27181    
+      8     18.307        4.3191        1.4047       0.97179       0.34159    
+      9     20.350        5.2283        1.6915        1.2188       0.42461    
+     10     22.750        6.1511        2.0512        1.4984       0.53713    
+     19     32.093        10.599        3.7717        2.9658        1.1231    
+     20     32.468        10.804        3.8321        3.0378        1.1450    
+
+                         ****   K-VALUES           ****
+   STAGE     N-PENTAN
+      1    0.86233E-02
+      2    0.11999    
+      3    0.18805    
+      4    0.20778    
+      5    0.21735    
+      8    0.26268    
+      9    0.31705    
+     10    0.40477    
+     19    0.83067    
+     20    0.84754    
+
+                         ****   MASS-X-PROFILE     ****
+   STAGE     ETHANE        PROPANE       I-BUTANE      N-BUTANE      I-PENTAN
+      1    0.15806       0.23179       0.30550       0.30442       0.21211E-03
+      2    0.10912E-01   0.83897E-01   0.35517       0.54870       0.11450E-02
+      3    0.33257E-02   0.37609E-01   0.30487       0.65016       0.33728E-02
+      4    0.28176E-02   0.26083E-01   0.25671       0.70338       0.88486E-02
+      5    0.27247E-02   0.22973E-01   0.22038       0.72525       0.21978E-01
+      8    0.23362E-02   0.16886E-01   0.13126       0.50552       0.21154    
+      9    0.20506E-02   0.13305E-01   0.94225E-01   0.32131       0.30958    
+     10    0.13346E-03   0.32029E-02   0.68018E-01   0.31704       0.34168    
+     19    0.32390E-15   0.28149E-09   0.71472E-04   0.34085E-02   0.54767    
+     20    0.14730E-16   0.37335E-10   0.24735E-04   0.14445E-02   0.49914    
+
+                         ****   MASS-X-PROFILE     ****
+   STAGE     N-PENTAN
+      1    0.25398E-04
+      2    0.17969E-03
+      3    0.66256E-03
+      4    0.21649E-02
+      5    0.66914E-02
+      8    0.13246    
+      9    0.25953    
+     10    0.26993    
+     19    0.44885    
+     20    0.49939    
+
+                         ****   MASS-Y-PROFILE     ****
+   STAGE     ETHANE        PROPANE       I-BUTANE      N-BUTANE      I-PENTAN
+      1    0.79996       0.13773       0.39018E-01   0.23286E-01   0.39323E-05
+      2    0.15806       0.23179       0.30550       0.30442       0.21211E-03
+      3    0.54445E-01   0.12765       0.34048       0.47643       0.86899E-03
+      4    0.47933E-01   0.93589E-01   0.30505       0.55048       0.24616E-02
+      5    0.47474E-01   0.85256E-01   0.27074       0.58862       0.63642E-02
+      8    0.47607E-01   0.81181E-01   0.20523       0.54681       0.80432E-01
+      9    0.47639E-01   0.79406E-01   0.18195       0.44702       0.15006    
+     10    0.32650E-02   0.21184E-01   0.15001       0.51074       0.19732    
+     19    0.10412E-13   0.29886E-08   0.27002E-03   0.10126E-01   0.61614    
+     20    0.47859E-15   0.40366E-09   0.94858E-04   0.43913E-02   0.57196    
+
+                         ****   MASS-Y-PROFILE     ****
+   STAGE     N-PENTAN
+      1    0.32106E-06
+      2    0.25398E-04
+      3    0.13404E-03
+      4    0.47887E-03
+      5    0.15494E-02
+      8    0.38733E-01
+      9    0.93934E-01
+     10    0.11747    
+     19    0.37347    
+     20    0.42356    

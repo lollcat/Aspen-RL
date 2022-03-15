@@ -32,10 +32,10 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def get_simulated_column_properties(self, column_input_spec: ColumnInputSpecification) -> \
             ColumnOutputSpecification:
         return ColumnOutputSpecification(
-            condensor_duty=10.0, reboiler_duty=1.1,
-            molar_weight_per_stage=(1.1,) * column_input_spec.n_stages,
-            vapor_flow_per_stage=(1.2,) * column_input_spec.n_stages,
-            temperature_per_stage=(100.1, ) * column_input_spec.n_stages)
+            condensor_duty=10.0, reboiler_duty=1.1)
+            # molar_weight_per_stage=(1.1,) * column_input_spec.n_stages,
+            #vapor_flow_per_stage=(1.2,) * column_input_spec.n_stages,
+            #temperature_per_stage=(100.1, ) * column_input_spec.n_stages)
 
     def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
         assert isinstance(column_specification, ColumnInputSpecification)

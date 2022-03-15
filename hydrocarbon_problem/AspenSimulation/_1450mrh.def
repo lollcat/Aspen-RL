@@ -1,0 +1,10 @@
+SLAVE:
+INPUT: _1450mrh.inm
+MODNAME: apmain
+RUNID: _1450mrh
+NEW_RUNID: _1450mrh
+OLD_RUNID: _1450mrh
+PDF: _1450mrh.appdf
+USERNAME: s2399016
+XMOD: C:\Program Files\AspenTech\Aspen Plus V11.0\Engine\xeq\apmain
+DBCONN: _1450mrh.ads
