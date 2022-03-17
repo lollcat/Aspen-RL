@@ -59,9 +59,6 @@ class Simulation():
 
         return COMP_1
 
-    def STRM_Get_Purity(self, Name, Chemical):
-        comp_purity = self.STRM.Elements(Name).Elements("Output").Elements("MOLEFRAC").Elements("MIXED").Elements(Chemical).Value
-        return comp_purity
 
     def STRM_Get_Temperature(self, Name):
         return self.STRM.Elements(Name).Elements("Input").Elements("TEMP").Elements("MIXED").Value
@@ -212,30 +209,83 @@ class Simulation():
 
 
 
-    def CAL_Stream_Value(self, stream_specification: StreamSpecification, product_specification: ProductSpecification):
+    def CAL_stream_value(self, component_specifications, molar_flows, stream_component_specifications):
         """Calculates the value (per year) of a stream."""
         up_time = 8400 * 3600                                       # seconds per year, assuming 8400 hours of uptime
+        total_mol_flows = sum(molar_flows)                    # total molar flow in top stream
+        # bot_mol_flows = bots_specifications.molar_flows             # molar flows in bottom stream per component
+        # total_bot_mol_flows = sum(bot_mol_flows)                    # total molar flow in bottom stream
 
+        """component_specifications = {
+            'ethane':     {'index': 0, 'molar weight': 30.07, 'price': 125.0, 'required purity': 0.95},
+            'propane':    {'index': 1, 'molar weight': 44.1,  'price': 204.0, 'required purity': 0.95},
+            'isobutane':  {'index': 2, 'molar weight': 58.12, 'price': 272.0, 'required purity': 0.95},
+            'n_butane':   {'index': 3, 'molar weight': 58.12, 'price': 249.0, 'required purity': 0.95},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95},
+            'n_pentane':  {'index': 5, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95}
+        }"""
 
-        component_specifications = {1: {'name': 'ethane',     'molar weight': 30.07, 'price': 1.0, 'required purity': 90.0},
-                                    2: {'name': 'propane',    'molar weight': 44.1,  'price': 2.0, 'required purity': 91.0},
-                                    3: {'name': 'isobutane',  'molar weight': 58.12, 'price': 3.0, 'required purity': 92.0},
-                                    4: {'name': 'n_butane',   'molar weight': 58.12, 'price': 4.0, 'required purity': 93.0},
-                                    5: {'name': 'isopentane', 'molar weight': 72.15, 'price': 5.0, 'required purity': 94.0},
-                                    6: {'name': 'n_pentane',  'molar weight': 72.15, 'price': 6.0, 'required purity': 95.0}
-                                    }
-        mass_flow = np.zeros(len(component_specifications))                    # mass flow per second
-        stream_value = np.zeros(len(component_specifications))                 # array with stream values per year
+        top_component_specifications = {
+            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
+            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []}
+        }                            # a dictionary which stores mass flows, molar purities and stream values
 
-        for i in range(0, len(component_specifications)):
-            mass_flow[i] = stream_specification.molar_flows[i] * component_specifications[i]['molar weight'] / 1000     # Convert mol/s to kg/s per component
-            stream_value[i] = mass_flow[i] * component_specifications[i]['price'] * up_time                             # calculate revenue per component
+        bottom_component_specifications = {
+            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
+            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []},
+        }
 
-        total_output_value = sum(stream_value)  # $ per year for total output
+        for entry in stream_component_specifications:
+            # calculate mass flows from molar flows and store in component_specifications
+            stream_component_specifications[entry]['mass flow'] = molar_flows[stream_component_specifications[entry]['index']] * \
+                                                               component_specifications[entry]['molar weight'] / 1000 * up_time
+            stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
+                                                            total_mol_flows         # calculate molar purities in top flow
 
-        return total_output_value
+            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']: # check whether requirement is met in the top stream
+                stream_component_specifications[entry]['stream value'] = stream_component_specifications[entry]['mass flow'] * \
+                                                                      component_specifications[entry]['price'] # if requirement is met, stream value is calculated
+            else:
+                stream_component_specifications[entry]['stream value'] = 0         # if requirement isn't met, stream value is 0
 
-    def compare_product_spec(self, component_specifications, product_specification: ProductSpecification):
+        total_stream_value = sum(d['top stream value'] for d in top_component_specifications.values() if d)
 
+        """for entry in component_specifications:
+            component_specifications[entry]['bot mass flow'] = bot_mol_flows[component_specifications[entry]['index']] * component_specifications[entry]['molar weight'] / 1000
+            component_specifications[entry]['bot purity'] = bot_mol_flows[component_specifications[entry]['index']] / total_bot_mol_flows
+
+            if component_specifications[entry]['bot purity'] >= component_specifications[entry]['required purity']:
+                component_specifications[entry]['bot stream value'] = component_specifications[entry]['bot mass flow'] * component_specifications[entry]['price']
+            else:
+                component_specifications[entry]['bot stream value'] = 0
+
+        total_bot_stream_value = sum(d['bot stream value'] for d in component_specifications.values() if d)
+        """
+        return total_stream_value
+
+    def CAL_purity_comparison(self, component_specifications, molar_flows, stream_component_specifications):
+        purity_check = []
+        for entry in stream_component_specifications:
+            stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
+                                                               sum(molar_flows)
+            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']:
+                purity_check[entry] = 1
+            else:
+                purity_check[entry] = 0
+
+        if sum(purity_check) > 0:
+            meet_purity = True
+        else:
+            meet_purity = False
+
+        return meet_purity
 
 

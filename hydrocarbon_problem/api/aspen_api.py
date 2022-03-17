@@ -111,24 +111,45 @@ class AspenAPI(BaseAspenDistillationAPI):
         return Total_cost
 
 
-    def get_stream_value(self, stream_specification: StreamSpecification, product_specification: ProductSpecification) -> float:
+    def get_stream_value(self, tops_specifications, bots_specifications, stream_specification: StreamSpecification, product_specification: ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
+        component_specifications = {
+            'ethane':     {'index': 0, 'molar weight': 30.07, 'price': 125.0, 'required purity': 0.95},
+            'propane':    {'index': 1, 'molar weight': 44.1, 'price': 204.0, 'required purity': 0.95},
+            'isobutane':  {'index': 2, 'molar weight': 58.12, 'price': 272.0, 'required purity': 0.95},
+            'n_butane':   {'index': 3, 'molar weight': 58.12, 'price': 249.0, 'required purity': 0.95},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95},
+            'n_pentane':  {'index': 5, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95}
+        }
 
-        return 1.0
+        top_component_specifications = {
+            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
+            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []}
+        }
+
+        bottom_component_specifications = {
+            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
+            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
+            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
+            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []},
+        }
+
+        top_stream_value = self._flowsheet.CAL_Stream_Value(component_specifications, tops_specifications.molar_flows, top_component_specifications)
+        bottom_stream_value = self._flowsheet.CAL_Stream_Value(component_specifications, bots_specifications.molar_flows, bottom_component_specifications)
+
+        return top_stream_value, bottom_stream_value
 
 
     def stream_is_product(self, stream_specification: StreamSpecification, product_specification:
                                 ProductSpecification) -> bool:
+        #use stream_specification to calculate whether requirements are met
         """Checks whether a stream meets the product specification."""
-        top_spec = {
-            1: {'name': 'ethane',     'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name,self._name_to_aspen_name.ethane)},
-            2: {'name': 'propane',    'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name,self._name_to_aspen_name.propane)},
-            3: {'name': 'isobutane',  'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name, self._name_to_aspen_name.isobutane)},
-            4: {'name': 'n_butane',   'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name, self._name_to_aspen_name.n_butane)},
-            5: {'name': 'isopentane', 'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name, self._name_to_aspen_name.isopentane)},
-            6: {'name': 'n_pentane',  'purity': self._flowsheet.STRM_Get_Purity(self._bottoms_name, self._name_to_aspen_name.n_pentane)},
-        }
-        top_check = np.zero(len(top_spec))
 
         return True
 

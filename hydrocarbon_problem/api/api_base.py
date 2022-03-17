@@ -42,7 +42,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_stream_value(self, stream_specification: StreamSpecification,product_specification: ProductSpecification) -> float:
+    def get_stream_value(self, tops_specifications, bots_specifications, stream_specification: StreamSpecification,product_specification: ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
         raise NotImplementedError
 
