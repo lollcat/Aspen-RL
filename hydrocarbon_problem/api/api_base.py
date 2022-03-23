@@ -36,7 +36,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_column_cost(self, column_input_specification: ColumnInputSpecification,
+    def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         """Calculates the TAC of the column."""
         raise NotImplementedError

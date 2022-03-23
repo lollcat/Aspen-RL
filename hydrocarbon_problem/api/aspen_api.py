@@ -1,4 +1,5 @@
 from typing import Tuple
+import retry.api as retry
 import numpy as np
 # from sqlalchemy import column
 from hydrocarbon_problem.api.Simulation import Simulation
@@ -12,7 +13,7 @@ PATH = 'C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/Asp
 
 class AspenAPI(BaseAspenDistillationAPI):
     def __init__(self):
-        self._flowsheet: Simulation = Simulation(PATH=PATH, VISIBILITY=False)
+        self._flowsheet: Simulation = Simulation(PATH=PATH, VISIBILITY=True)
         self._feed_name: str = "S1"
         self._tops_name: str = "S2"
         self._bottoms_name: str = "S3"
@@ -101,14 +102,15 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
     def solve_flowsheet(self) -> bool:
-        print(self._flowsheet.Run())
-        return True
+        converged = (self._flowsheet.Run())
+        return converged
 
-    def get_column_cost(self, column_input_specification: ColumnInputSpecification,
+    def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         t_reboiler = column_output_specification.temperature_per_stage[-1]
         t_condenser = column_output_specification.temperature_per_stage[0]
-        total_cost = self._flowsheet.CAL_InvestmentCost(column_input_specification.n_stages,
+        total_cost = self._flowsheet.CAL_InvestmentCost(stream_specification.pressure,
+                                                        column_input_specification.n_stages,
                                                         column_output_specification.condenser_duty,
                                                         t_reboiler,
                                                         column_output_specification.reboiler_duty,
@@ -123,41 +125,19 @@ class AspenAPI(BaseAspenDistillationAPI):
     def get_stream_value(self, stream, ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
         stream_value = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
-        # top_stream_value = self._flowsheet.CAL_stream_value(tops_specifications.molar_flows, product_specification.purity)
-        # bottom_stream_value = self._flowsheet.CAL_stream_value(bots_specifications.molar_flows, product_specification.purity)
 
-        # total_stream_value = top_stream_value + bottom_stream_value
-
-        """"
-        tops, bottoms = aspen_api.get_output_stream_specifications()
-
-        for stream in [tops, bottoms]:
-            stream_value = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
-
-        top_stream_value = self._flowsheet.CAL_stream_value(component_specifications, stream_specification.molar_flows,
-                                                            top_component_specifications)
-        # bottom_stream_value = self._flowsheet.CAL_Stream_Value(component_specifications, bots_specifications.molar_flows, bottom_component_specifications)
-
-        return top_stream_value  # , bottom_stream_value
-        """
-
-        return stream_value  # total_stream_value
+        return stream_value/1000
 
     def stream_is_product(self, stream, ProductSpecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
         """Checks whether a stream meets the product specification."""
         is_purity, component_purities = self._flowsheet.CAL_purity_check(stream, ProductSpecification.purity)
-        # top_purity_check = self._flowsheet.CAL_purity_check(tops_specifications, product_specification.purity)
-        # bottom_purity_check = self._flowsheet.CAL_purity_check(bots_specifications, product_specification.purity)
+
         if np.any(is_purity):
             purity = 1
         else:
             purity = 0
 
-        return purity  # top_purity_check, bottom_purity_check
-
-    def error_check(self):
-        error = self._flowsheet.get_error()
-        return error
+        return purity
 
 
 if __name__ == '__main__':

@@ -1,0 +1,307 @@
+
+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+ + +                                                                         + +
+ + +                      ASPEN PLUS CALCULATION HISTORY                     + +
+ + +                                                                         + +
+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+ + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+
+ ASPEN PLUS IS A TRADEMARK OF           HOTLINE:
+ ASPEN TECHNOLOGY, INC.                 U.S.A. 888/996-7100
+ 781/221-6400                           EUROPE (44) 1189-226555
+
+ PLATFORM: WIN-X64                                       MARCH 21, 2022      
+ VERSION: 37.0   Build 398 Patchlevel 2                  MONDAY      
+ INSTALLATION:                                           11:41:35 A.M.       
+
+ THIS COPY OF ASPEN PLUS LICENSED TO UNIVERSITY OF TWENTE            
+
+
+      ASPEN PLUS (R) IS A PROPRIETARY PRODUCT OF ASPEN TECHNOLOGY, INC.
+      (ASPENTECH), AND MAY BE USED ONLY UNDER AGREEMENT WITH ASPENTECH.
+      RESTRICTED RIGHTS LEGEND:  USE, REPRODUCTION, OR DISCLOSURE BY THE
+      U.S. GOVERNMENT IS SUBJECT TO RESTRICTIONS SET FORTH IN 
+      (i) FAR 52.227-14, Alt. III, (ii) FAR 52.227-19, (iii) DFARS 
+      252.227-7013(c)(1)(ii), or (iv) THE ACCOMPANYING LICENSE AGREEMENT,
+      AS APPLICABLE. FOR PURPOSES OF THE FAR, THIS SOFTWARE SHALL BE DEEMED
+      TO BE "UNPUBLISHED" AND LICENSED WITH DISCLOSURE PROHIBITIONS.
+      CONTRACTOR/SUBCONTRACTOR: ASPEN TECHNOLOGY, INC. 20 CROSBY DRIVE,
+      BEDFORD, MA 01730.
+ *** INPUT SUMMARY ***
+
+ >>CURRENT RUN
+
+   ORIGINAL RUN                           MARCH 21, 2022      
+   11:41:35 A.M.                          MONDAY      
+   INPUT FILE: _4055vtq.inm
+   RUN ID : _4055vtq
+          1    ;
+          2    ;Input file created by Aspen Plus Rel. 37.0 at 11:41:35 Mon Mar 21, 2022
+          3    ;Directory   Runid HYDROCARBONMIXTURE$BACKUP
+          4    ;
+          5
+          6
+          7    DYNAMICS
+          8        DYNAMICS RESULTS=ON
+          9
+         10    IN-UNITS SI PRESSURE=bar TEMPERATURE=C PDROP=bar SHORT-LENGTH=mm
+         11
+         12    DEF-STREAMS CONVEN ALL
+         13
+         14    SIM-OPTIONS MASS-BAL-CHE=YES
+         15
+         16    MODEL-OPTION
+         17
+         18    DESCRIPTION "
+         19        Chemical Simulation with Metric Units :
+         20        C, bar, kg/hr, kmol/hr, Gcal/hr, cum/hr.
+         21
+         22        Property Method: NRTL
+         23
+         24        Flow basis for input: Mole
+         25
+         26        Stream report composition: Mole flow
+         27        "
+         28
+         29    DATABANKS 'APV110 PURE37' / 'APV110 AQUEOUS' / 'APV110 SOLIDS' &
+         30             / 'APV110 INORGANIC' / 'APESV110 AP-EOS' /  &
+         31            'NISTV110 NIST-TRC' / NOASPENPCD
+         32
+         33    PROP-SOURCES 'APV110 PURE37' / 'APV110 AQUEOUS' /  &
+         34            'APV110 SOLIDS' / 'APV110 INORGANIC' / 'APESV110 AP-EOS' &
+         35             / 'NISTV110 NIST-TRC'
+         36
+         37    COMPONENTS
+         38        ETHANE C2H6 /
+         39        PROPANE C3H8 /
+         40        I-BUTANE C4H10-2 /
+         41        N-BUTANE C4H10-1 /
+         42        I-PENTAN C5H12-2 /
+         43        N-PENTAN C5H12-1
+         44
+         45    SOLVE
+         46        RUN-MODE MODE=SIM
+         47
+         48    FLOWSHEET
+         49        BLOCK B1 IN=S1 OUT=S2 S3
+         50
+         51    PROPERTIES PENG-ROB
+         52        PROPERTIES CHAO-SEA / IDEAL / NRTL / PSRK / SRK
+         53
+         54    PROP-DATA NRTL-1
+         55        IN-UNITS MET VOLUME-FLOW='cum/hr' ENTHALPY-FLO='Gcal/hr'  &
+         56            HEAT-TRANS-C='kcal/hr-sqm-K' PRESSURE=bar TEMPERATURE=C  &
+         57            VOLUME=cum DELTA-T=C HEAD=meter MASS-DENSITY='kg/cum'  &
+         58            MOLE-ENTHALP='kcal/mol' MASS-ENTHALP='kcal/kg'  &
+         59            MOLE-VOLUME='cum/kmol' HEAT=Gcal MOLE-CONC='mol/l'  &
+         60            PDROP=bar SHORT-LENGTH=mm
+         61        PROP-LIST NRTL
+         62        BPVAL N-BUTANE N-PENTAN 0.0 -264.2933000 .3000000000 0.0  &
+         63            0.0 0.0 25.00000000 25.00000000
+         64        BPVAL N-PENTAN N-BUTANE 0.0 413.7626000 .3000000000 0.0  &
+         65            0.0 0.0 25.00000000 25.00000000
+         66
+         67    PROP-DATA PRKBV-1
+         68        IN-UNITS MET VOLUME-FLOW='cum/hr' ENTHALPY-FLO='Gcal/hr'  &
+         69            HEAT-TRANS-C='kcal/hr-sqm-K' PRESSURE=bar TEMPERATURE=C  &
+         70            VOLUME=cum DELTA-T=C HEAD=meter MASS-DENSITY='kg/cum'  &
+         71            MOLE-ENTHALP='kcal/mol' MASS-ENTHALP='kcal/kg'  &
+         72            MOLE-VOLUME='cum/kmol' HEAT=Gcal MOLE-CONC='mol/l'  &
+         73            PDROP=bar SHORT-LENGTH=mm
+         74        PROP-LIST PRKBV
+         75        BPVAL ETHANE PROPANE 1.10000000E-3 0.0 0.0 -273.1500000  &
+         76            726.8500000
+         77        BPVAL PROPANE ETHANE 1.10000000E-3 0.0 0.0 -273.1500000  &
+         78            726.8500000
+         79        BPVAL ETHANE I-BUTANE -6.7000000E-3 0.0 0.0 -273.1500000  &
+         80            726.8500000
+         81        BPVAL I-BUTANE ETHANE -6.7000000E-3 0.0 0.0 -273.1500000  &
+         82            726.8500000
+         83        BPVAL ETHANE N-BUTANE 9.60000000E-3 0.0 0.0 -273.1500000  &
+         84            726.8500000
+         85        BPVAL N-BUTANE ETHANE 9.60000000E-3 0.0 0.0 -273.1500000  &
+         86            726.8500000
+         87        BPVAL PROPANE I-BUTANE -7.8000000E-3 0.0 0.0 -273.1500000  &
+         88            726.8500000
+         89        BPVAL I-BUTANE PROPANE -7.8000000E-3 0.0 0.0 -273.1500000  &
+         90            726.8500000
+         91        BPVAL PROPANE N-BUTANE 3.30000000E-3 0.0 0.0 -273.1500000  &
+         92            726.8500000
+         93        BPVAL N-BUTANE PROPANE 3.30000000E-3 0.0 0.0 -273.1500000  &
+         94            726.8500000
+         95        BPVAL I-BUTANE N-BUTANE -4.0000000E-4 0.0 0.0 -273.1500000  &
+         96            726.8500000
+         97        BPVAL N-BUTANE I-BUTANE -4.0000000E-4 0.0 0.0 -273.1500000  &
+         98            726.8500000
+         99        BPVAL PROPANE I-PENTAN .0111000000 0.0 0.0 -273.1500000  &
+        100            726.8500000
+        101        BPVAL I-PENTAN PROPANE .0111000000 0.0 0.0 -273.1500000  &
+        102            726.8500000
+        103        BPVAL N-BUTANE I-PENTAN 2.92000000E-3 0.0 0.0 -273.1500000  &
+        104            726.8500000
+        105        BPVAL I-PENTAN N-BUTANE 2.92000000E-3 0.0 0.0 -273.1500000  &
+        106            726.8500000
+        107        BPVAL ETHANE N-PENTAN 7.80000000E-3 0.0 0.0 -273.1500000  &
+        108            726.8500000
+        109        BPVAL N-PENTAN ETHANE 7.80000000E-3 0.0 0.0 -273.1500000  &
+        110            726.8500000
+        111        BPVAL PROPANE N-PENTAN .0267000000 0.0 0.0 -273.1500000  &
+        112            726.8500000
+        113        BPVAL N-PENTAN PROPANE .0267000000 0.0 0.0 -273.1500000  &
+        114            726.8500000
+        115        BPVAL N-BUTANE N-PENTAN .0174000000 0.0 0.0 -273.1500000  &
+        116            726.8500000
+        117        BPVAL N-PENTAN N-BUTANE .0174000000 0.0 0.0 -273.1500000  &
+        118            726.8500000
+        119        BPVAL I-PENTAN N-PENTAN 0.0 0.0 0.0 -273.1500000  &
+        120            726.8500000
+        121        BPVAL N-PENTAN I-PENTAN 0.0 0.0 0.0 -273.1500000  &
+        122            726.8500000
+        123
+        124    PROP-DATA SRKKIJ-1
+        125        IN-UNITS MET VOLUME-FLOW='cum/hr' ENTHALPY-FLO='Gcal/hr'  &
+        126            HEAT-TRANS-C='kcal/hr-sqm-K' PRESSURE=bar TEMPERATURE=C  &
+        127            VOLUME=cum DELTA-T=C HEAD=meter MASS-DENSITY='kg/cum'  &
+        128            MOLE-ENTHALP='kcal/mol' MASS-ENTHALP='kcal/kg'  &
+        129            MOLE-VOLUME='cum/kmol' HEAT=Gcal MOLE-CONC='mol/l'  &
+        130            PDROP=bar SHORT-LENGTH=mm
+        131        PROP-LIST SRKKIJ
+        132        BPVAL ETHANE PROPANE 1.69511000E-3 0.0 0.0 -273.1500000  &
+        133            726.8500000
+        134        BPVAL PROPANE ETHANE 1.69511000E-3 0.0 0.0 -273.1500000  &
+        135            726.8500000
+        136        BPVAL ETHANE I-BUTANE 5.51229000E-3 0.0 0.0 -273.1500000  &
+        137            726.8500000
+        138        BPVAL I-BUTANE ETHANE 5.51229000E-3 0.0 0.0 -273.1500000  &
+        139            726.8500000
+        140        BPVAL ETHANE N-BUTANE 5.32194000E-3 0.0 0.0 -273.1500000  &
+        141            726.8500000
+        142        BPVAL N-BUTANE ETHANE 5.32194000E-3 0.0 0.0 -273.1500000  &
+        143            726.8500000
+        144        BPVAL PROPANE I-BUTANE -2.9093200E-3 0.0 0.0 -273.1500000  &
+        145            726.8500000
+        146        BPVAL I-BUTANE PROPANE -2.9093200E-3 0.0 0.0 -273.1500000  &
+        147            726.8500000
+        148        BPVAL PROPANE N-BUTANE -2.0759400E-3 0.0 0.0 -273.1500000  &
+        149            726.8500000
+        150        BPVAL N-BUTANE PROPANE -2.0759400E-3 0.0 0.0 -273.1500000  &
+        151            726.8500000
+        152        BPVAL I-BUTANE N-BUTANE -3.7749700E-3 0.0 0.0 -273.1500000  &
+        153            726.8500000
+        154        BPVAL N-BUTANE I-BUTANE -3.7749700E-3 0.0 0.0 -273.1500000  &
+        155            726.8500000
+        156        BPVAL PROPANE I-PENTAN 3.05866000E-3 0.0 0.0 -273.1500000  &
+        157            726.8500000
+        158        BPVAL I-PENTAN PROPANE 3.05866000E-3 0.0 0.0 -273.1500000  &
+        159            726.8500000
+        160        BPVAL N-BUTANE I-PENTAN 7.83000000E-3 0.0 0.0 -273.1500000  &
+        161            726.8500000
+        162        BPVAL I-PENTAN N-BUTANE 7.83000000E-3 0.0 0.0 -273.1500000  &
+        163            726.8500000
+        164        BPVAL ETHANE N-PENTAN .0142534000 0.0 0.0 -273.1500000  &
+        165            726.8500000
+        166        BPVAL N-PENTAN ETHANE .0142534000 0.0 0.0 -273.1500000  &
+        167            726.8500000
+        168        BPVAL PROPANE N-PENTAN -4.3278900E-3 0.0 0.0 -273.1500000  &
+        169            726.8500000
+        170        BPVAL N-PENTAN PROPANE -4.3278900E-3 0.0 0.0 -273.1500000  &
+        171            726.8500000
+        172        BPVAL N-BUTANE N-PENTAN .0381884000 0.0 0.0 -273.1500000  &
+        173            726.8500000
+        174        BPVAL N-PENTAN N-BUTANE .0381884000 0.0 0.0 -273.1500000  &
+        175            726.8500000
+        176        BPVAL I-PENTAN N-PENTAN 0.0 0.0 0.0 -273.1500000  &
+        177            726.8500000
+        178        BPVAL N-PENTAN I-PENTAN 0.0 0.0 0.0 -273.1500000  &
+        179            726.8500000
+        180
+        181    STREAM S1
+        182        SUBSTREAM MIXED TEMP=60. PRES=1.
+        183        MOLE-FLOW ETHANE 1. / PROPANE 1. / I-BUTANE 1. /  &
+        184            N-BUTANE 1. / I-PENTAN 1. / N-PENTAN 1.
+        185
+        186    BLOCK B1 RADFRAC
+        187        PARAM NSTAGE=20 ALGORITHM=STANDARD HYDRAULIC=NO MAXOL=25  &
+        188            DAMPING=NONE
+        189        PARAM2 STATIC-DP=YES
+        190        COL-CONFIG CONDENSER=TOTAL CA-CONFIG=INT-1
+        191        FEEDS S1 10
+        192        PRODUCTS S2 1 L / S3 20 L
+        193        P-SPEC 1 1.
+        194        COL-SPECS MOLE-RR=2. MOLE-BR=2.
+        195        REPORT NOHYDRAULIC
+        196
+        197    EO-CONV-OPTI
+        198
+        199    STREAM-REPOR MOLEFLOW
+        200
+        201    PROPERTY-REP PCES
+        202
+        203    PROP-TABLE BINRY-1 FLASHCURVE
+        204        IN-UNITS SI PRESSURE=bar TEMPERATURE=C PDROP=bar  &
+        205            SHORT-LENGTH=mm
+        206        PROPERTIES PENG-ROB FREE-WATER=STEAM-TA SOLU-WATER=3  &
+        207            TRUE-COMPS=YES
+        208        MOLE-FLOW I-PENTAN 1 /  N-PENTAN  1
+        209        STATE VFRAC=0.0
+        210        ANALYSIS ANAL-TYPE=TXY
+        211        VARY PRES
+        212        RANGE LIST=1.013250000
+        213        VARY MOLEFRAC COMP=I-PENTAN
+        214        RANGE VARVALUE=RANGE LOWER=0.0 UPPER=1.0 NPOINT=50
+        215        PARAM NPHASE=3
+        216    ;
+        217    ;
+        218    ;
+        219    ;
+        220    ;
+ *** INPUT TRANSLATOR MESSAGES ***
+
+  *** THIS RUN USES THE PROPERTIES ENTERPRISE DATABASE ***
+      WIN743\SQLEXPRESS.APESV110 : (DATAVERSION - 37.0.0.22)                  
+      WIN743\SQLEXPRESS.APV110 : (DATAVERSION - 37.0.0.27)                    
+      WIN743\SQLEXPRESS.FACTV110 : (DATAVERSION - 37.0.0.11)                  
+      WIN743\SQLEXPRESS.NISTV110 : (DATAVERSION - 37.0.0.27)                  
+ 
+ 
+
+ PDF updated                                                                      TIME =      3.14
+
+ *** CALCULATION TRACE ***
+
+
+ *** FLOWSHEET ANALYSIS MESSAGES ***
+
+ FLOWSHEET CONNECTIVITY BY STREAMS       
+
+   STREAM     SOURCE     DEST           STREAM     SOURCE     DEST
+   S1         ----       B1             S2         B1         ----    
+   S3         B1         ----                                         
+
+ FLOWSHEET CONNECTIVITY BY BLOCKS        
+
+   BLOCK        INLETS                         OUTLETS
+   B1           S1                             S2 S3                       
+
+      COMPUTATION ORDER FOR THE FLOWSHEET IS:
+      B1 
+
+Calculations begin                                                              time      0.63
+
+
+ SIMULATION CALCULATIONS BEGIN                                                    TIME =      0.63
+
+      ENTHALPY CALCULATION FOR INLET STREAM S1 OF BLOCK B1                        TIME =      0.63
+      KODE = 2  NTRIAL =   3  T = 333.1500  P =  100000.      V =  1.00000      Q =  0.00000    
+
+      UOS BLOCK B1       MODEL: RADFRAC                                           TIME =      0.63
+
+       Convergence iterations:
+         OL   ML   IL     Err/Tol
+          1    1    4      296.38    
+          2    1    6      149.91    
+          3    1    3      60.929    
+          4    1    3      3.3940    
+          5    1    3      1.1766    
+          6    1    3     0.27426    

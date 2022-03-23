@@ -1,3 +1,9 @@
+"""Unit definitions:
+    Pressure: atm
+    Temperature: degree C
+    Molar flow: kmol/s
+    Condenser/reboiler duty: Watt
+    Distillate/reflux rate: kmol/s"""
 from typing import NamedTuple, Tuple, Union
 
 Array = Tuple[float, ...]
