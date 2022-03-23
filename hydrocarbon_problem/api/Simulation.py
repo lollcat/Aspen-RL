@@ -1,4 +1,4 @@
-import os 
+import os
 import win32com.client as win32
 import numpy as np
 
@@ -10,6 +10,8 @@ class Simulation():
         self.AspenSimulation.InitFromArchive2(os.path.abspath(PATH))
         self.AspenSimulation.Visible = VISIBILITY
 
+    # def get_error(self):
+    #    self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements("Output").Elements("PER_ERROR").Value = error
 
     @property
     def BLK(self):
@@ -61,11 +63,11 @@ class Simulation():
 
 
     def STRM_Get_Temperature(self, Name):
-        return self.STRM.Elements(Name).Elements("Input").Elements("TEMP").Elements("MIXED").Value
+        return self.STRM.Elements(Name).Elements("Output").Elements("TEMP_OUT").Elements("MIXED").Value
 
 
     def STRM_Get_Pressure(self, Name):
-        return self.STRM.Elements(Name).Elements("Input").Elements("PRES").Elements("MIXED").Value
+        return self.STRM.Elements(Name).Elements("Output").Elements("PRES_OUT").Elements("MIXED").Value
 
 
     def BLK_Get_NStages(self):
@@ -95,8 +97,6 @@ class Simulation():
     def BLK_Get_Reboiler_Duty(self):
         return self.BLK.Elements("B1").Elements("Output").Elements("REB_DUTY").Value
 
-    def BLK_Get_Column_Diameter(self):
-        return self.BLK.Elements("B1").Elements("Input").Elements("CA_DIAM").Value
 
     def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
         M = []
@@ -139,7 +139,7 @@ class Simulation():
         return n_stages*HEPT + H_0
 
     def CAL_LMTD(self, tops_temperature):
-        T_cool_in = 30              # Supply temperaturer of cooling water [oC]
+        T_cool_in = 30              # Supply temperature of cooling water [oC]
         T_cool_out = 40             # Return temperature of cooling water [oC]
         delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
                 (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
@@ -207,58 +207,54 @@ class Simulation():
         OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty)*t_a/1000
         return OperatingCost
 
-
-
-    def CAL_stream_value(self, component_specifications, molar_flows, stream_component_specifications):
+    def CAL_stream_value(self, stream_specification, product_specification): # , component_specifications, molar_flows, stream_component_specifications):
         """Calculates the value (per year) of a stream."""
-        up_time = 8400 * 3600                                       # seconds per year, assuming 8400 hours of uptime
-        total_mol_flows = sum(molar_flows)                    # total molar flow in top stream
+
+        up_time = 8400 * 3600  # seconds per year, assuming 8400 hours of uptime
+        is_purity, component_purities = self.CAL_purity_check(stream_specification, product_specification)
+
+        component_specifications = {
+            'ethane':     {'index': 0, 'molar weight': 30.07, 'price': 125.0, 'mass flow': 0, 'stream value': 0},
+            'propane':    {'index': 1, 'molar weight': 44.1,  'price': 204.0, 'mass flow': 0, 'stream value': 0},
+            'isobutane':  {'index': 2, 'molar weight': 58.12, 'price': 272.0, 'mass flow': 0, 'stream value': 0},
+            'n_butane':   {'index': 3, 'molar weight': 58.12, 'price': 249.0, 'mass flow': 0, 'stream value': 0},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0, 'mass flow': 0, 'stream value': 0},
+            'n_pentane':  {'index': 5, 'molar weight': 72.15, 'price': 545.0, 'mass flow': 0, 'stream value': 0}
+        }
+
+        for entry in component_specifications:
+            if sum(is_purity) > 0:
+                component_specifications[entry]['mass flow'] = stream_specification.molar_flows[component_specifications[entry]['index']] * component_specifications[entry]['molar weight'] / 1000 * up_time
+                component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] * component_specifications[entry]['price'] * component_specifications[entry]['mass flow']
+            elif sum(is_purity) == 0:
+                component_specifications[entry]['stream value'] = 0
+
+        total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
+
+        """
+        # total_mol_flows = sum(molar_flows)                    # total molar flow in top stream
         # bot_mol_flows = bots_specifications.molar_flows             # molar flows in bottom stream per component
         # total_bot_mol_flows = sum(bot_mol_flows)                    # total molar flow in bottom stream
 
-        """component_specifications = {
-            'ethane':     {'index': 0, 'molar weight': 30.07, 'price': 125.0, 'required purity': 0.95},
-            'propane':    {'index': 1, 'molar weight': 44.1,  'price': 204.0, 'required purity': 0.95},
-            'isobutane':  {'index': 2, 'molar weight': 58.12, 'price': 272.0, 'required purity': 0.95},
-            'n_butane':   {'index': 3, 'molar weight': 58.12, 'price': 249.0, 'required purity': 0.95},
-            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95},
-            'n_pentane':  {'index': 5, 'molar weight': 72.15, 'price': 545.0, 'required purity': 0.95}
-        }"""
 
-        top_component_specifications = {
-            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
-            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
-            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
-            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
-            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
-            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []}
-        }                            # a dictionary which stores mass flows, molar purities and stream values
 
-        bottom_component_specifications = {
-            'ethane':     {'index': 0, 'mass flow': [], 'purity': [], 'stream value': []},
-            'propane':    {'index': 1, 'mass flow': [], 'purity': [], 'stream value': []},
-            'isobutane':  {'index': 2, 'mass flow': [], 'purity': [], 'stream value': []},
-            'n_butane':   {'index': 3, 'mass flow': [], 'purity': [], 'stream value': []},
-            'isopentane': {'index': 4, 'mass flow': [], 'purity': [], 'stream value': []},
-            'n_pentane':  {'index': 5, 'mass flow': [], 'purity': [], 'stream value': []},
-        }
 
-        for entry in stream_component_specifications:
-            # calculate mass flows from molar flows and store in component_specifications
-            stream_component_specifications[entry]['mass flow'] = molar_flows[stream_component_specifications[entry]['index']] * \
-                                                               component_specifications[entry]['molar weight'] / 1000 * up_time
+            # calculate molar purities in top flow
             stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
-                                                            total_mol_flows         # calculate molar purities in top flow
-
-            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']: # check whether requirement is met in the top stream
+                                                            total_mol_flows
+            # check whether requirement is met in the top stream
+            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']:
                 stream_component_specifications[entry]['stream value'] = stream_component_specifications[entry]['mass flow'] * \
-                                                                      component_specifications[entry]['price'] # if requirement is met, stream value is calculated
+                                                                      component_specifications[entry]['price']
             else:
-                stream_component_specifications[entry]['stream value'] = 0         # if requirement isn't met, stream value is 0
+                stream_component_specifications[entry]['stream value'] = 0
 
-        total_stream_value = sum(d['top stream value'] for d in top_component_specifications.values() if d)
+        total_stream_value = sum(d['stream value'] for d in stream_component_specifications.values() if d)
 
-        """for entry in component_specifications:
+        """
+
+        """
+    for entry in component_specifications:
             component_specifications[entry]['bot mass flow'] = bot_mol_flows[component_specifications[entry]['index']] * component_specifications[entry]['molar weight'] / 1000
             component_specifications[entry]['bot purity'] = bot_mol_flows[component_specifications[entry]['index']] / total_bot_mol_flows
 
@@ -268,12 +264,25 @@ class Simulation():
                 component_specifications[entry]['bot stream value'] = 0
 
         total_bot_stream_value = sum(d['bot stream value'] for d in component_specifications.values() if d)
-        """
+    """
         return total_stream_value
 
-    def CAL_purity_comparison(self, component_specifications, molar_flows, stream_component_specifications):
-        purity_check = []
-        for entry in stream_component_specifications:
+    def CAL_purity_check(self, stream_specification, product_specification):
+        # , component_specifications, molar_flows, stream_component_specifications):
+
+        molar_flows = stream_specification.molar_flows
+        is_purity = np.zeros(len(molar_flows), dtype=int)
+        component_purities = np.zeros(len(molar_flows))
+        total_flow = sum(molar_flows)
+
+        for entry in range(0, len(molar_flows)):
+            component_purities[entry] = molar_flows[entry] / total_flow
+            if component_purities[entry] >= product_specification:
+                is_purity[entry] = 1
+            elif component_purities[entry] < product_specification:
+                is_purity[entry] = 0
+
+        """for entry in stream_component_specifications:
             stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
                                                                sum(molar_flows)
             if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']:
@@ -285,7 +294,8 @@ class Simulation():
             meet_purity = True
         else:
             meet_purity = False
+            """
 
-        return meet_purity
+        return is_purity, component_purities
 
 

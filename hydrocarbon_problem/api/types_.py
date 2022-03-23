@@ -18,8 +18,8 @@ class StreamSpecification(NamedTuple):
     temperature: float  # degrees C
     pressure: float  # atm
     molar_flows: PerCompoundProperty  # mol/s
-    T_condenser: float  # degrees C
-    T_reboiler: float  # degrees C
+    # T_condenser: float  # degrees C
+    # T_reboiler: float  # degrees C
 
 
 class ColumnInputSpecification(NamedTuple):
