@@ -123,41 +123,19 @@ class AspenAPI(BaseAspenDistillationAPI):
     def get_stream_value(self, stream, ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
         stream_value = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
-        # top_stream_value = self._flowsheet.CAL_stream_value(tops_specifications.molar_flows, product_specification.purity)
-        # bottom_stream_value = self._flowsheet.CAL_stream_value(bots_specifications.molar_flows, product_specification.purity)
 
-        # total_stream_value = top_stream_value + bottom_stream_value
-
-        """"
-        tops, bottoms = aspen_api.get_output_stream_specifications()
-
-        for stream in [tops, bottoms]:
-            stream_value = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
-
-        top_stream_value = self._flowsheet.CAL_stream_value(component_specifications, stream_specification.molar_flows,
-                                                            top_component_specifications)
-        # bottom_stream_value = self._flowsheet.CAL_Stream_Value(component_specifications, bots_specifications.molar_flows, bottom_component_specifications)
-
-        return top_stream_value  # , bottom_stream_value
-        """
-
-        return stream_value  # total_stream_value
+        return stream_value
 
     def stream_is_product(self, stream, ProductSpecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
         """Checks whether a stream meets the product specification."""
         is_purity, component_purities = self._flowsheet.CAL_purity_check(stream, ProductSpecification.purity)
-        # top_purity_check = self._flowsheet.CAL_purity_check(tops_specifications, product_specification.purity)
-        # bottom_purity_check = self._flowsheet.CAL_purity_check(bots_specifications, product_specification.purity)
+
         if np.any(is_purity):
             purity = 1
         else:
             purity = 0
 
-        return purity  # top_purity_check, bottom_purity_check
-
-    def error_check(self):
-        error = self._flowsheet.get_error()
-        return error
+        return purity
 
 
 if __name__ == '__main__':

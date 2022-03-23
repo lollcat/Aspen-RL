@@ -10,9 +10,6 @@ class Simulation():
         self.AspenSimulation.InitFromArchive2(os.path.abspath(PATH))
         self.AspenSimulation.Visible = VISIBILITY
 
-    # def get_error(self):
-    #    self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements("Output").Elements("PER_ERROR").Value = error
-
     @property
     def BLK(self):
         return self.AspenSimulation.Tree.Elements("Data").Elements("Blocks")
@@ -231,40 +228,7 @@ class Simulation():
 
         total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
 
-        """
-        # total_mol_flows = sum(molar_flows)                    # total molar flow in top stream
-        # bot_mol_flows = bots_specifications.molar_flows             # molar flows in bottom stream per component
-        # total_bot_mol_flows = sum(bot_mol_flows)                    # total molar flow in bottom stream
 
-
-
-
-            # calculate molar purities in top flow
-            stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
-                                                            total_mol_flows
-            # check whether requirement is met in the top stream
-            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']:
-                stream_component_specifications[entry]['stream value'] = stream_component_specifications[entry]['mass flow'] * \
-                                                                      component_specifications[entry]['price']
-            else:
-                stream_component_specifications[entry]['stream value'] = 0
-
-        total_stream_value = sum(d['stream value'] for d in stream_component_specifications.values() if d)
-
-        """
-
-        """
-    for entry in component_specifications:
-            component_specifications[entry]['bot mass flow'] = bot_mol_flows[component_specifications[entry]['index']] * component_specifications[entry]['molar weight'] / 1000
-            component_specifications[entry]['bot purity'] = bot_mol_flows[component_specifications[entry]['index']] / total_bot_mol_flows
-
-            if component_specifications[entry]['bot purity'] >= component_specifications[entry]['required purity']:
-                component_specifications[entry]['bot stream value'] = component_specifications[entry]['bot mass flow'] * component_specifications[entry]['price']
-            else:
-                component_specifications[entry]['bot stream value'] = 0
-
-        total_bot_stream_value = sum(d['bot stream value'] for d in component_specifications.values() if d)
-    """
         return total_stream_value
 
     def CAL_purity_check(self, stream_specification, product_specification):
@@ -281,20 +245,6 @@ class Simulation():
                 is_purity[entry] = 1
             elif component_purities[entry] < product_specification:
                 is_purity[entry] = 0
-
-        """for entry in stream_component_specifications:
-            stream_component_specifications[entry]['purity'] = molar_flows[stream_component_specifications[entry]['index']] / \
-                                                               sum(molar_flows)
-            if stream_component_specifications[entry]['purity'] >= component_specifications[entry]['required purity']:
-                purity_check[entry] = 1
-            else:
-                purity_check[entry] = 0
-
-        if sum(purity_check) > 0:
-            meet_purity = True
-        else:
-            meet_purity = False
-            """
 
         return is_purity, component_purities
 
