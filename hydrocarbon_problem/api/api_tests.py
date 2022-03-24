@@ -71,7 +71,7 @@ def test_api(api: BaseAspenDistillationAPI):
     print(f"Tops: {tops}")
     print(f"Bottoms: {bottoms}")
     print(f"Column output spec: {column_output_spec}")
-    print(f"Column cost [k€]: {column_cost}")
+    print(f"TAC [k€]: {column_cost}")
     print(f"Top stream value [k€]: {top_stream_value}")
     print(f"Bottom stream value [k€]: {bottom_stream_value}")
     print(f"Revenue [k€]: {revenue}")
