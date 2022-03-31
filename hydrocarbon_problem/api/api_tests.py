@@ -34,9 +34,9 @@ def test_api(api: BaseAspenDistillationAPI):
     api.set_column_specification(fake_column_input_spec)
 
     # simulate the column
-    start1 = time.time()
+    start = time.time()
     solved = api.solve_flowsheet()
-    print(time.time() - start1)
+    print(time.time() - start)
     if solved == False:
         print("Aspen did not converge")
     elif solved == True:
