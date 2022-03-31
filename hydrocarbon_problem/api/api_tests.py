@@ -2,6 +2,7 @@ from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
 import os
+import time
 print(os.getcwd())
 
 
@@ -25,15 +26,21 @@ def test_api(api: BaseAspenDistillationAPI):
     api.set_input_stream_specification(fake_stream)
 
     # set column input spec
-    fake_column_input_spec = ColumnInputSpecification(n_stages=121, feed_stage_location=2,
-                                                      reflux_ratio=5.2,
-                                                      reboil_ratio=7.6,
+    fake_column_input_spec = ColumnInputSpecification(n_stages=50, feed_stage_location=25,
+                                                      reflux_ratio=1,
+                                                      reboil_ratio=1,
                                                       condensor_pressure=17.4)
     # now manually check that the column specification has changed
     api.set_column_specification(fake_column_input_spec)
 
     # simulate the column
+    start1 = time.time()
     solved = api.solve_flowsheet()
+    print(time.time() - start1)
+    if solved == False:
+        print("Aspen did not converge")
+    elif solved == True:
+        print("Aspen did converge")
     assert solved
 
     # retrieve values from the flowsheet
@@ -49,8 +56,12 @@ def test_api(api: BaseAspenDistillationAPI):
     assert isinstance(bottoms, StreamSpecification)
 
     fake_product_specification = ProductSpecification(purity=0.9)
-    top_stream_value = api.get_stream_value(tops, fake_product_specification)
-    bottom_stream_value = api.get_stream_value(bottoms, fake_product_specification)
+    top_stream_value, top_stream_purity = api.get_stream_value(tops, fake_product_specification)
+    bottom_stream_value, bottom_stream_purity = api.get_stream_value(bottoms, fake_product_specification)
+
+    print(top_stream_purity)
+    print(bottom_stream_purity)
+
 
     for stream, stream_value in zip([tops, bottoms], [top_stream_value, bottom_stream_value]):
         if api.stream_is_product(stream, fake_product_specification):

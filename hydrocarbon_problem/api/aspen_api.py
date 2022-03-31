@@ -1,5 +1,6 @@
+import os
+import subprocess
 from typing import Tuple
-import retry.api as retry
 import numpy as np
 # from sqlalchemy import column
 from hydrocarbon_problem.api.Simulation import Simulation
@@ -8,12 +9,10 @@ from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
     ColumnOutputSpecification, ProductSpecification, PerCompoundProperty
 
-PATH = 'C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/HydrocarbonMixture.bkp'
-
 
 class AspenAPI(BaseAspenDistillationAPI):
     def __init__(self):
-        self._flowsheet: Simulation = Simulation(PATH=PATH, VISIBILITY=True)
+        self._flowsheet: Simulation = Simulation(VISIBILITY=True)
         self._feed_name: str = "S1"
         self._tops_name: str = "S2"
         self._bottoms_name: str = "S3"
@@ -59,6 +58,7 @@ class AspenAPI(BaseAspenDistillationAPI):
 
         # Getting the physical values of Top streams
         bots_temperature = self._flowsheet.STRM_Get_Temperature(self._bottoms_name)
+
         bots_pressure = self._flowsheet.STRM_Get_Pressure(self._bottoms_name)
         # Acquiring the outputs out of the Bottom (Bottom Stream)
         bots_ethane = self._flowsheet.STRM_Get_Outputs(self._bottoms_name, self._name_to_aspen_name.ethane)
@@ -122,11 +122,11 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                               column_output_specification.condenser_duty)
         return total_cost
 
-    def get_stream_value(self, stream, ProductSpecification) -> float:
+    def get_stream_value(self, stream, ProductSpecification):
         """Calculates the value (per year) of a stream."""
-        stream_value = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
+        stream_value, component_purities = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
 
-        return stream_value/1000
+        return stream_value/1000, component_purities*100
 
     def stream_is_product(self, stream, ProductSpecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
         """Checks whether a stream meets the product specification."""
