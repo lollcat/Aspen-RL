@@ -1,8 +1,7 @@
 import os
 import win32com.client as win32
 import numpy as np
-import multiprocessing
-import signal, time
+import time
 
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
@@ -120,6 +119,7 @@ class Simulation():
                 break
             elif converged == 1:
                 tries += 1
+                converged = False
         return converged
 
 

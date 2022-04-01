@@ -1,6 +1,7 @@
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
+from sys import exit
 import os
 import time
 print(os.getcwd())
@@ -13,7 +14,7 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # set input stream
     fake_stream = StreamSpecification(temperature=105,
-                                      pressure=17.4,
+                                      pressure=16.4,
                                       molar_flows=PerCompoundProperty(
                                           ethane=0.017,
                                           propane=1.110,
@@ -37,11 +38,12 @@ def test_api(api: BaseAspenDistillationAPI):
     start = time.time()
     solved = api.solve_flowsheet()
     print(time.time() - start)
+    # assert solved
     if solved == False:
         print("Aspen did not converge")
+        exit()
     elif solved == True:
         print("Aspen did converge")
-    assert solved
 
     # retrieve values from the flowsheet
     column_output_spec = api.get_simulated_column_properties(fake_column_input_spec)
