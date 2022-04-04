@@ -26,6 +26,11 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def dummy_solve_flowsheet(self) -> bool:
+        """Solves the flowsheet. Returns True if the solve was successful."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def set_column_specification(self, column_input_specification: ColumnInputSpecification) -> None:
         """Sets the column specification"""
         raise NotImplementedError

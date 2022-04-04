@@ -102,6 +102,11 @@ class Simulation():
             V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
         return V
 
+    def dummy_Run(self):
+        start = time.time()
+        self.AspenSimulation.Engine.Run2()
+        print(f"Dummy = {time.time() - start}")
+
     def Run(self):
         tries = 0
         converged = 0
@@ -111,7 +116,8 @@ class Simulation():
         while tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            print(time.time() - start)
+            print(f"Run = {time.time() - start}")
+            # print(time.time() - start)
             converged = self.AspenSimulation.Tree.Elements("Data").Elements("Results Summary").Elements(
                            "Run-Status").Elements("Output").Elements("PER_ERROR").Value
             if converged == 0:

@@ -14,14 +14,14 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # set input stream
     fake_stream = StreamSpecification(temperature=105,
-                                      pressure=16.4,
+                                      pressure=17.4,
                                       molar_flows=PerCompoundProperty(
                                           ethane=0.017,
                                           propane=1.110,
                                           isobutane=1.198,
                                           n_butane=0.516,
                                           isopentane=0.334,
-                                          n_pentane=0.173
+                                          n_pentane=20  #0.173
                                       ))
     # now manually check that the stream in the flowsheet has changed
     api.set_input_stream_specification(fake_stream)
@@ -36,6 +36,7 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # simulate the column
     start = time.time()
+    solved1 = api.dummy_solve_flowsheet()
     solved = api.solve_flowsheet()
     print(time.time() - start)
     # assert solved
