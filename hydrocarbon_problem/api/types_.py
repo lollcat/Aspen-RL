@@ -1,16 +1,22 @@
-from typing import NamedTuple, Tuple
+"""Unit definitions:
+    Pressure: atm
+    Temperature: degree C
+    Molar flow: kmol/s
+    Condenser/reboiler duty: Watt
+    Distillate/reflux rate: kmol/s"""
+from typing import NamedTuple, Tuple, Union
 
 Array = Tuple[float, ...]
 
 """Types for flowsheet properties used to help specify the api between Aspen and Python"""
 class PerCompoundProperty(NamedTuple):
     """Defines a type for each compound."""
-    ethane: float
-    propane: float
-    isobutane: float
-    n_butane: float
-    isopentane: float
-    n_pentane: float
+    ethane: Union[float, str]
+    propane: Union[float, str]
+    isobutane: Union[float, str]
+    n_butane: Union[float, str]
+    isopentane: Union[float, str]
+    n_pentane: Union[float, str]
 
 
 class StreamSpecification(NamedTuple):
@@ -18,6 +24,8 @@ class StreamSpecification(NamedTuple):
     temperature: float  # degrees C
     pressure: float  # atm
     molar_flows: PerCompoundProperty  # mol/s
+    # T_condenser: float  # degrees C
+    # T_reboiler: float  # degrees C
 
 
 class ColumnInputSpecification(NamedTuple):
@@ -32,7 +40,7 @@ class ColumnInputSpecification(NamedTuple):
 
 class ColumnOutputSpecification(NamedTuple):
     """All relevant output information from the simulated column (besides output stream info)."""
-    condensor_duty: float
+    condenser_duty: float
     reboiler_duty: float
     molar_weight_per_stage: Array
     vapor_flow_per_stage: Array

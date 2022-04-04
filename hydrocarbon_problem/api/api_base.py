@@ -2,7 +2,7 @@ from typing import Tuple
 import abc
 
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
-    ColumnOutputSpecification, ProductSpecification
+    ColumnOutputSpecification  # , ProductSpecification
 
 
 class BaseAspenDistillationAPI(abc.ABC):
@@ -20,14 +20,18 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_simulated_column_properties(self, column_input_specification:
-    ColumnInputSpecification) -> \
+    def get_simulated_column_properties(self, column_input_specification: ColumnInputSpecification) -> \
             ColumnOutputSpecification:
         """Returns the specification of the simulated column."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
+    def dummy_solve_flowsheet(self) -> bool:
+        """Solves the flowsheet. Returns True if the solve was successful."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_column_specification(self, column_input_specification: ColumnInputSpecification) -> None:
         """Sets the column specification"""
         raise NotImplementedError
 
@@ -37,18 +41,19 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_column_cost(self, column_specification: ColumnOutputSpecification) -> float:
+    def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
+                        column_output_specification: ColumnOutputSpecification) -> float:
         """Calculates the TAC of the column."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_stream_value(self, stream_specification: StreamSpecification,
-                         product_specification: ProductSpecification) -> float:
+    def get_stream_value(self, stream, product_specification) -> float:
         """Calculates the value (per year) of a stream."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def stream_is_product(self, stream_specification: StreamSpecification, product_specification:
-                                ProductSpecification) -> bool:
+    def stream_is_product(self, stream, product_specification) -> bool:
         """Checks whether a stream meets the product specification."""
         raise NotImplementedError
+
+
