@@ -13,13 +13,14 @@ class Observation(NamedTuple):
 class Done(NamedTuple):
     created_states: Tuple[bool, bool]  # if the created streams are product or still need to be
     # separated.
-    overall: bool # the whole env loop is done
+    overall: bool  # the whole env loop is done
 
 class Stream(NamedTuple):
     """Defines stream type, which are managed within the stream table."""
     specification: StreamSpecification
     is_product: bool
     number: int
+    value: float
 
 
 class Column(NamedTuple):
