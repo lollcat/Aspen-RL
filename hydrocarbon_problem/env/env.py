@@ -55,6 +55,8 @@ class AspenDistillation(dm_env.Environment):
         self._current_stream_number = self._initial_feed.number
         self._steps = 0
 
+        self._blank_state = np.zeros(self.observation_spec().shape)
+
     
     def observation_spec(self) -> specs.Array:
         input_obs = self._stream_to_observation(self._initial_feed)
@@ -72,7 +74,7 @@ class AspenDistillation(dm_env.Environment):
             created_states=(discount_tops, discount_bots))
 
     def action_spec(self) -> Tuple[specs.DiscreteArray, specs.BoundedArray]:
-        continuous_spec = specs.BoundedArray(shape=(4,), dtype=float, minimum=-1, maximum=1,
+        continuous_spec = specs.BoundedArray(shape=(5,), dtype=float, minimum=-1, maximum=1,
                                   name="action_continuous")
         discrete_spec = specs.DiscreteArray(num_values=2, name="action_discrete")
         return (discrete_spec, continuous_spec)
@@ -103,7 +105,8 @@ class AspenDistillation(dm_env.Environment):
             self.flowsheet_api.solve_flowsheet()
             tops_stream, bottoms_stream, column_output_spec = \
                 self._get_simulated_flowsheet_info(column_input_spec)
-            self._manage_environment_internals(tops_stream, bottoms_stream, column_output_spec)
+            self._manage_environment_internals(tops_stream, bottoms_stream, column_input_spec,
+                                               column_output_spec)
             reward = self.calculate_reward(feed_stream, tops_stream, bottoms_stream, column_input_spec,
                                            column_output_spec)
             upcoming_stream = self._get_upcoming_stream()
@@ -116,13 +119,17 @@ class AspenDistillation(dm_env.Environment):
         else:
             # choose not to separate the stream
             self._manage_environment_internals_no_act()
+            done_overall = self._steps >= self._max_n_steps or \
+                           len(self._stream_numbers_yet_to_be_acted_on) == 0
             reward = 0.0
-            upcoming_stream = self._get_upcoming_stream()
+            if not done_overall:
+                upcoming_stream = self._get_upcoming_stream()
+                upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
+            else:
+                upcoming_stream_obs = self._blank_state
             observation = Observation(
-                created_states=(np.zeros(self.observation_spec().shape),
-                                np.zeros(self.observation_spec().shape)),
-                upcoming_state=self._stream_to_observation(upcoming_stream))
-            done_overall = self._steps >= self._max_n_steps
+                created_states=(self._blank_state, self._blank_state),
+                upcoming_state=upcoming_stream_obs)
             done = Done((False, False), done_overall)
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
@@ -134,7 +141,7 @@ class AspenDistillation(dm_env.Environment):
     def _action_to_column_spec(self, action: Action) -> Tuple[bool, ColumnInputSpecification]:
         """All actions are assumed to be bounded between -1 and 1, and we then translate these into
         the relevant values for the ColumnInputSpecification."""
-        continuous_action, discrete_action = action
+        discrete_action, continuous_action = action
         n_stages = round(np.interp(continuous_action[0], [-1, 1], self._n_stages_bounds) + 0.5)
         # feed as fraction between stage 0 and n_stages
         feed_stage_location = round(np.interp(continuous_action[1], [-1, 1], [0, n_stages]) + 0.5)
@@ -157,7 +164,7 @@ class AspenDistillation(dm_env.Environment):
         tops_stream = self._stream_specification_to_stream(tops_stream_spec)
         bottoms_stream = self._stream_specification_to_stream(bottoms_stream_spec)
         column_output_spec = self.flowsheet_api.get_simulated_column_properties(
-            column_input_specification=column_input_specification)
+            column_input_spec=column_input_specification)
         return tops_stream, bottoms_stream, column_output_spec
 
     def _manage_environment_internals(self, tops_stream: Stream,
@@ -179,7 +186,7 @@ class AspenDistillation(dm_env.Environment):
 
 
     def _manage_environment_internals_no_act(self):
-        self._stream_numbers_yet_to_be_acted_on.pop()
+        pass
 
     def _get_upcoming_stream(self) -> Stream:
         self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
