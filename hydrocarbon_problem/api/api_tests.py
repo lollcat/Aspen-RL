@@ -36,7 +36,6 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # simulate the column
     start = time.time()
-    solved1 = api.dummy_solve_flowsheet()
     solved = api.solve_flowsheet()
     print(time.time() - start)
     # assert solved
@@ -59,11 +58,8 @@ def test_api(api: BaseAspenDistillationAPI):
     assert isinstance(bottoms, StreamSpecification)
 
     fake_product_specification = ProductSpecification(purity=0.9)
-    top_stream_value, top_stream_purity = api.get_stream_value(tops, fake_product_specification)
-    bottom_stream_value, bottom_stream_purity = api.get_stream_value(bottoms, fake_product_specification)
-
-    print(top_stream_purity)
-    print(bottom_stream_purity)
+    top_stream_value = api.get_stream_value(tops, fake_product_specification)
+    bottom_stream_value = api.get_stream_value(bottoms, fake_product_specification)
 
 
     for stream, stream_value in zip([tops, bottoms], [top_stream_value, bottom_stream_value]):
@@ -93,10 +89,10 @@ def test_api(api: BaseAspenDistillationAPI):
 
 if __name__ == '__main__':
     # example run with the fake distillation api
-    # from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
-    # api = FakeDistillationAPI()
-    # test_api(api)
-
-    from hydrocarbon_problem.api.aspen_api import BaseAspenDistillationAPI, AspenAPI
-    api = AspenAPI()
+    from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
+    api = FakeDistillationAPI()
     test_api(api)
+
+    # from hydrocarbon_problem.api.aspen_api import BaseAspenDistillationAPI, AspenAPI
+    # api = AspenAPI()
+    # test_api(api)

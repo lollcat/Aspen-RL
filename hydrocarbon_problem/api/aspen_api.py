@@ -101,10 +101,6 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-    def dummy_solve_flowsheet(self) -> bool:
-        converged1 = (self._flowsheet.dummy_Run())
-        return converged1
-
 
     def solve_flowsheet(self) -> bool:
         converged = (self._flowsheet.Run())

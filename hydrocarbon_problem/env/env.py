@@ -4,8 +4,9 @@ from dm_env import specs
 from collections import deque
 import numpy as np
 
+# from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
-from hydrocarbon_problem.api.aspen_api import AspenAPI
+from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
 from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done
@@ -36,7 +37,7 @@ class AspenDistillation(dm_env.Environment):
                  reflux_ratio_bounds: Tuple[float, float] = (0.01, 20.0),
                  max_steps: int = 30,
                  flowsheet_api: Optional[BaseAspenDistillationAPI] = None):
-        self.flowsheet_api = flowsheet_api if flowsheet_api else AspenAPI()
+        self.flowsheet_api = flowsheet_api if flowsheet_api else FakeDistillationAPI()
         # hyper-parameters of the distillation environment
         self.product_spec = product_spec
         self._pressure_bounds = pressure_bounds

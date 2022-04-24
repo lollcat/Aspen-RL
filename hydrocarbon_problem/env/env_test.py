@@ -24,3 +24,7 @@ def test():
         observation = timestep.observation.upcoming_state
         action = agent(observation)
         timestep = env.step(action)
+
+
+if __name__ == '__main__':
+    test()
