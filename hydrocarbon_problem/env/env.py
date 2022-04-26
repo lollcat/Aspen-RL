@@ -9,7 +9,7 @@ from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
-from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done, Discount
+from hydrocarbon_problem.env.types import Stream, Column, Observation, Done, Discount
 
 Action = Tuple[np.ndarray, np.ndarray]
 

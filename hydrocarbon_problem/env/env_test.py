@@ -14,7 +14,7 @@ def make_fake_agent(env: AspenDistillation):
         return discrete_action, continuous_action
     return fake_agent
 
-def test(n_episodes: int = 5):
+def test(n_episodes: int = 10):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
@@ -25,6 +25,7 @@ def test(n_episodes: int = 5):
     for i in range(n_episodes):
         timestep = env.reset()
         episode_return = 0
+        n_streams = 1
         while not timestep.last():
             observation = timestep.observation.upcoming_state
             action = agent(observation)
@@ -40,16 +41,20 @@ def test(n_episodes: int = 5):
                 assert (timestep.observation.created_states[1] == env._blank_state).all()
                 assert (timestep.observation.created_states[0] == env._blank_state).all()
             else:
+                n_streams += 2  # 2 new streams created
                 # if we choose to seperate a stream, then the reward should be non-zero, the created state
                 # discount's should both be 1, the created_states should have non-zero values.
                 assert not timestep.reward == 0.0
                 assert timestep.discount.created_states == (1, 1)
                 assert not (timestep.observation.created_states[1] == env._blank_state).all()
                 assert not (timestep.observation.created_states[0] == env._blank_state).all()
-            if timestep.discount.overall == 0:
-                assert (timestep.observation.upcoming_state == env._blank_state).all()
-            else:
-                assert not (timestep.observation.upcoming_state == env._blank_state).all()
+                if not timestep.last():
+                    # if the episode is not done, then check that the upcoming observation has
+                    # non-zero values
+                    assert not (timestep.observation.upcoming_state == env._blank_state).all()
+
+            # check the stream table has the correct number of streams
+            assert len(env._stream_table) == n_streams
         print(f"episode complete with return of {episode_return}")
 
 
