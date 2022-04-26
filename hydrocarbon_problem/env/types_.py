@@ -15,6 +15,10 @@ class Done(NamedTuple):
     # separated.
     overall: bool  # the whole env loop is done
 
+class Discount(NamedTuple):
+    created_states: Tuple[np.ndarray, np.ndarray]
+    overall: np.ndarray
+
 class Stream(NamedTuple):
     """Defines stream type, which are managed within the stream table."""
     specification: StreamSpecification

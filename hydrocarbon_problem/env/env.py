@@ -4,12 +4,12 @@ from dm_env import specs
 from collections import deque
 import numpy as np
 
-# from hydrocarbon_problem.api.aspen_api import AspenAPI
+
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
-from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done
+from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done, Discount
 
 Action = Tuple[np.ndarray, np.ndarray]
 
@@ -26,7 +26,14 @@ DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
 class AspenDistillation(dm_env.Environment):
     """
     This environment has a very not-standard step function (2 streams created from 1 stream)
-    # TODO: describe in detail
+    To manage this we have an observation object that contains "created states" which are the states
+    that have been recently produced by an action, and "upcoming state" which is the observation of
+    the next stream that will be used to create a distillation column.
+    We also split "done" and "discount" into values for the recently created streams
+    from a specific action - for indicating whether these streams are product streams that leave the process,
+    as well as an "overall" value which indicates whether the overall episode is complete
+    (this occurs when the maximum number of columns have been used, or if there are no non-product
+    streams yet to be acted on in the `._stream_numbers_yet_to_be_acted_on` object.
     """
 
     def __init__(self,
@@ -69,7 +76,7 @@ class AspenDistillation(dm_env.Environment):
             shape=(), dtype=float, minimum=0., maximum=1., name='discount_bots')
         overall = specs.BoundedArray(
             shape=(), dtype=float, minimum=0., maximum=1., name='discount_overall')
-        return Done(
+        return Discount(
             overall=overall,
             created_states=(discount_tops, discount_bots))
 
@@ -114,13 +121,12 @@ class AspenDistillation(dm_env.Environment):
                 created_states=(self._stream_to_observation(tops_stream),
                                 self._stream_to_observation(bottoms_stream)),
                 upcoming_state=self._stream_to_observation(upcoming_stream))
-            done_overall = self._steps >= self._max_n_steps
+            done_overall = self.get_done_overall()
             done = Done((tops_stream.is_product, bottoms_stream.is_product), done_overall)
         else:
             # choose not to separate the stream
             self._manage_environment_internals_no_act()
-            done_overall = self._steps >= self._max_n_steps or \
-                           len(self._stream_numbers_yet_to_be_acted_on) == 0
+            done_overall = self.get_done_overall()
             reward = 0.0
             if not done_overall:
                 upcoming_stream = self._get_upcoming_stream()
@@ -130,11 +136,22 @@ class AspenDistillation(dm_env.Environment):
             observation = Observation(
                 created_states=(self._blank_state, self._blank_state),
                 upcoming_state=upcoming_stream_obs)
-            done = Done((False, False), done_overall)
+            done = Done((True, True), done_overall)
+        discount = Discount((np.array(1 - done.created_states[0]),
+                             np.array(1 - done.created_states[1])),
+                        np.array(1-done.overall))
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
-                                   reward=reward, discount=done)
+                                   reward=reward, discount=discount)
         return timestep
+
+
+    def get_done_overall(self):
+        """Indicates whether the overall episode is complete, because either the
+        maximum number of environment steps have been taken, or the
+        self._stream_numbers_yet_to_be_acted_on is empty. """
+        return self._steps >= self._max_n_steps or \
+                           len(self._stream_numbers_yet_to_be_acted_on) == 0
 
 
 
@@ -158,7 +175,7 @@ class AspenDistillation(dm_env.Environment):
         return choose_seperate, column_spec
 
     def _get_simulated_flowsheet_info(self, column_input_specification: ColumnInputSpecification):
-        """Grabs relevant info from simualted flowsheet."""
+        """Grabs relevant info from simulated flowsheet."""
         tops_stream_spec, bottoms_stream_spec = \
             self.flowsheet_api.get_output_stream_specifications()
         tops_stream = self._stream_specification_to_stream(tops_stream_spec)
@@ -186,14 +203,20 @@ class AspenDistillation(dm_env.Environment):
 
 
     def _manage_environment_internals_no_act(self):
+        # If no action is taken then no new streams are added to the stream table, so currently
+        # this function is just an empty placeholder.
         pass
 
     def _get_upcoming_stream(self) -> Stream:
+        """For the next action, get a stream from the
+        self._stream_numbers_yet_to_be_acted_on list."""
         self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
         stream = self._stream_table[self._current_stream_number]
         return stream
 
     def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
+        """Convert StreamSpecification object into a StreamObject for a recently added stream. This
+        function also gives the stream a unique number."""
         is_product = self.flowsheet_api.stream_is_product(stream_spec, self.product_spec)
         stream_value = self.flowsheet_api.get_stream_value(stream_spec, self.product_spec)
         stream = Stream(specification=stream_spec, is_product=is_product,
@@ -215,6 +238,8 @@ class AspenDistillation(dm_env.Environment):
 
 
     def _stream_to_observation(self, stream: Stream) -> np.array:
+        """Convert the Stream object into an observation that can be passed to the agent,
+        in the form of an array."""
         stream_spec = stream.specification
         obs = np.array([stream_spec.temperature, stream_spec.pressure] +
                        list(stream_spec.molar_flows))
