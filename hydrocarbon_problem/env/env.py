@@ -155,23 +155,27 @@ class AspenDistillation(dm_env.Environment):
 
 
 
-    def _action_to_column_spec(self, action: Action) -> Tuple[bool, ColumnInputSpecification]:
+    def _action_to_column_spec(self, action: Action) -> Tuple[bool,
+                                                              Optional[ColumnInputSpecification]]:
         """All actions are assumed to be bounded between -1 and 1, and we then translate these into
         the relevant values for the ColumnInputSpecification."""
         discrete_action, continuous_action = action
-        n_stages = round(np.interp(continuous_action[0], [-1, 1], self._n_stages_bounds) + 0.5)
-        # feed as fraction between stage 0 and n_stages
-        feed_stage_location = round(np.interp(continuous_action[1], [-1, 1], [0, n_stages]) + 0.5)
-        reflux_ratio = np.interp(continuous_action[2], [-1, 1], self._reflux_ratio_bounds)
-        reboil_ratio = np.interp(continuous_action[3], [-1, 1], self._reflux_ratio_bounds)
-        condensor_pressure = np.interp(continuous_action[4], [-1, 1], self._pressure_bounds)
-        column_spec = ColumnInputSpecification(
-            n_stages=n_stages,
-            feed_stage_location=feed_stage_location,
-            reflux_ratio=reflux_ratio,
-            reboil_ratio=reboil_ratio,
-            condensor_pressure=condensor_pressure)
         choose_seperate = True if discrete_action == 1 else False
+        if choose_seperate:
+            n_stages = round(np.interp(continuous_action[0], [-1, 1], self._n_stages_bounds) + 0.5)
+            # feed as fraction between stage 0 and n_stages
+            feed_stage_location = round(np.interp(continuous_action[1], [-1, 1], [0, n_stages]) + 0.5)
+            reflux_ratio = np.interp(continuous_action[2], [-1, 1], self._reflux_ratio_bounds)
+            reboil_ratio = np.interp(continuous_action[3], [-1, 1], self._reflux_ratio_bounds)
+            condensor_pressure = np.interp(continuous_action[4], [-1, 1], self._pressure_bounds)
+            column_spec = ColumnInputSpecification(
+                n_stages=n_stages,
+                feed_stage_location=feed_stage_location,
+                reflux_ratio=reflux_ratio,
+                reboil_ratio=reboil_ratio,
+                condensor_pressure=condensor_pressure)
+        else:
+            column_spec = None
         return choose_seperate, column_spec
 
     def _get_simulated_flowsheet_info(self, column_input_specification: ColumnInputSpecification):
