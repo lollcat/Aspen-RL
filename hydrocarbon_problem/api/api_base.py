@@ -26,11 +26,6 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def dummy_solve_flowsheet(self) -> bool:
-        """Solves the flowsheet. Returns True if the solve was successful."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def set_column_specification(self, column_input_specification: ColumnInputSpecification) -> None:
         """Sets the column specification"""
         raise NotImplementedError
@@ -41,7 +36,8 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
+    def get_column_cost(self, stream_specification: StreamSpecification,
+                        column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         """Calculates the TAC of the column."""
         raise NotImplementedError
