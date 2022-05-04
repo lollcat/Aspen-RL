@@ -108,6 +108,7 @@ class AspenDistillation(dm_env.Environment):
         feed_stream = self._stream_table[self._current_stream_number]
         choose_separate, column_input_spec = self._action_to_column_spec(action)
         if choose_separate:
+            self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
             self.flowsheet_api.set_column_specification(column_input_spec)
             self.flowsheet_api.solve_flowsheet()
             tops_stream, bottoms_stream, column_output_spec = \
