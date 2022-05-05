@@ -52,3 +52,8 @@ class ProductSpecification(NamedTuple):
     # we could change this to a PerCompoundProperty if we want to have separate
     # purities for each compound.
     purity: float
+
+# class RunSpecification(NamedTuple):
+#     """Run status like duration and convergence"""
+#     duration: float
+#     converged: bool

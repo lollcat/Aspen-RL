@@ -7,10 +7,12 @@ class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
     def __init__(self, VISIBILITY):
+        print(os.getcwd())
         os.chdir('../AspenSimulation')
         print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
         self.AspenSimulation.Visible = VISIBILITY
+        self.AspenSimulation.SuppressDialogs = True
 
     @property
     def BLK(self):
@@ -102,31 +104,36 @@ class Simulation():
             V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
         return V
 
-    def dummy_Run(self):
-        start = time.time()
-        self.AspenSimulation.Engine.Run2()
-        print(f"Dummy = {time.time() - start}")
 
     def Run(self):
+        duration = 0.0
+        run_converged = False
         tries = 0
-        converged = 0
-        iterations = 10
+        iterations = 100
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = iterations
 
         while tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            print(f"Run = {time.time() - start}")
-            # print(time.time() - start)
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Results Summary").Elements(
-                           "Run-Status").Elements("Output").Elements("PER_ERROR").Value
+            duration = time.time() - start
+            print(f"Run = {duration}")
+            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+                           "B1").Elements("Output").Elements("PER_ERROR").Value
+            # print(converged)
             if converged == 0:
-                converged = True
+                run_converged = True
                 break
             elif converged == 1:
-                tries += 1
-                converged = False
-        return converged
+                message = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements("B1").Elements("Output").Elements("PER_ERROR").Elements("1").Value
+                if "ERROR" in message.upper():   # Check for the word error in the message
+                    tries += 1
+                    if tries == 2:
+                        run_converged = False
+                elif "WARNING" in message.upper():  # Check for the word warning in the message
+                    run_converged = True
+                    break
+
+        return duration, run_converged
 
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):

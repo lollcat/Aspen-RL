@@ -1,1 +1,1 @@
-from hydrocarbon_problem.env.types import Observation, Done, Stream, Column
+from hydrocarbon_problem.env.types_ import Observation, Done, Stream, Column

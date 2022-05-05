@@ -101,10 +101,9 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-
-    def solve_flowsheet(self) -> bool:
-        converged = (self._flowsheet.Run())
-        return converged
+    def solve_flowsheet(self) -> Tuple[float, bool]:
+        duration, run_converged = self._flowsheet.Run()
+        return duration, run_converged
 
     def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
@@ -123,11 +122,11 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                               column_output_specification.condenser_duty)
         return total_cost
 
-    def get_stream_value(self, stream, ProductSpecification):
+    def get_stream_value(self, stream, product_specification) -> float:
         """Calculates the value (per year) of a stream."""
-        stream_value, component_purities = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
+        stream_value, component_purities = self._flowsheet.CAL_stream_value(stream, product_specification.purity)
 
-        return stream_value/1000, component_purities*100
+        return stream_value/1000
 
     def stream_is_product(self, stream, ProductSpecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
         """Checks whether a stream meets the product specification."""

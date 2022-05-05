@@ -2,7 +2,7 @@ from typing import Tuple
 import abc
 
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
-    ColumnOutputSpecification  # , ProductSpecification
+    ColumnOutputSpecification, ProductSpecification
 
 
 class BaseAspenDistillationAPI(abc.ABC):
@@ -31,7 +31,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self) -> bool:
+    def solve_flowsheet(self) -> Tuple[float, bool]:
         """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError
 
@@ -43,12 +43,12 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_stream_value(self, stream, product_specification) -> float:
+    def get_stream_value(self, stream: StreamSpecification, product_specification: ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def stream_is_product(self, stream, product_specification) -> bool:
+    def stream_is_product(self, stream: StreamSpecification, product_specification: ProductSpecification) -> bool:
         """Checks whether a stream meets the product specification."""
         raise NotImplementedError
 
