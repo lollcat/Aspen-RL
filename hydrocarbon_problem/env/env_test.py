@@ -1,9 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import time
 
 from hydrocarbon_problem.env.env import AspenDistillation
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.api.aspen_api import AspenAPI
+
 
 def make_fake_agent(env: AspenDistillation):
     def fake_agent(obs):
@@ -16,19 +17,25 @@ def make_fake_agent(env: AspenDistillation):
         return discrete_action, continuous_action
     return fake_agent
 
-def test(n_episodes: int = 5):
+
+def test(n_episodes: int = 2500):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
     # api = FakeDistillationAPI()  # this can be changed to AspenAPI to test with Aspen
+    # api = AspenAPIAutoRun()
     api = AspenAPI()
     env = AspenDistillation(flowsheet_api=api)
     agent = make_fake_agent(env)
     simulation_time = []
+    episodic_time = []
     converged = []
-
+    _return = []
+    episode = 1
 
     for i in range(n_episodes):
+        start = time.time()
+        print(f"Episode: {episode}")
         timestep = env.reset()
         episode_return = 0
         n_streams = 1
@@ -36,7 +43,6 @@ def test(n_episodes: int = 5):
             observation = timestep.observation.upcoming_state
             action = agent(observation)
             timestep, duration, run_converged = env.step(action)
-            # if duration > 0 and run_converged == True:
             simulation_time.append(duration)
             converged.append(run_converged)
             print(timestep)
@@ -73,20 +79,26 @@ def test(n_episodes: int = 5):
 
             # check the stream table has the correct number of streams
             assert len(env._stream_table) == n_streams
+        episode_timer = time.time() - start
         print(f"episode complete with return of {episode_return}")
-    return simulation_time, converged
+        _return.append(episode_return)
+        episodic_time.append(episode_timer)
+        episode += 1
+    return simulation_time, converged, _return, episodic_time
 
 
 if __name__ == '__main__':
-    simulation_time, converged = test()
+    simulation_time, converged, _return, episodic_time = test()
 
     # Separate the convergence data
     unconverged_separations = [index for (index, item) in enumerate(converged) if item == False]
     iterations_without_separation = [index for (index, item) in enumerate(converged) if item == "no separation"]
     converged_separation = [index for (index, item) in enumerate(converged) if item == True]
 
+    # Number of non-Aspen runs
     number_of_iterations_without_separation = len(iterations_without_separation)
 
+    # Number of Aspen runs
     number_of_unconverged_separations = len(unconverged_separations)
     number_of_converged_separations = len(converged_separation)
     number_of_non_separations = len(iterations_without_separation)
@@ -94,6 +106,22 @@ if __name__ == '__main__':
 
     percent_unconverged_separations = 100 * number_of_unconverged_separations/total_separations
     percent_converged_separations = 100 * number_of_converged_separations/total_separations
+
+    # Filter returns
+    rl_returns = []
+    filtered_return = [index for (index, item) in enumerate(_return) if item != 0]
+    for i in filtered_return:
+        j = _return[i]
+        rl_returns.append(j)
+    average_rl_returns = np.average(rl_returns)
+
+    # Filter simulation times and calculate the average
+    aspen_time = []
+    sim_time = [index for (index, item) in enumerate(simulation_time) if item != "no separation"]
+    for i in sim_time:
+        j = simulation_time[i]
+        aspen_time.append(j)
+    aspen_time = np.average(aspen_time)
 
     if number_of_converged_separations == 0 and number_of_unconverged_separations == 0:
         print("no separations were performed")
@@ -107,11 +135,14 @@ if __name__ == '__main__':
               f"{percent_converged_separations} %")
         print(f"Number of non separations: {number_of_non_separations}")
 
+        # print(f"Episodic returns: {_return}")
+        print(f"Average return: {average_rl_returns}")
+
+        print(f"Average Aspen time: {aspen_time}")
         # print(f"Total sim array {simulation_time}")
-        # x = list(range(0, len(simulation_time)))
-        # plt.plot(x, simulation_time)
-        # plt.xlabel("Iteration [-]")
-        # plt.ylabel("Simulation time [s]")
-        # plt.show()
+
+        # print(f"Episodic time: {episodic_time}")
+        print(f"Average episodic time: {np.average(episodic_time)}")
+
 
 

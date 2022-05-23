@@ -19,7 +19,7 @@ _DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=0.0170,
                                                   n_butane=0.516,
                                                   isopentane=0.334,
                                                   n_pentane=0.173)
-DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=1000,#105.0,
+DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 pressure=17.4,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
 
@@ -39,8 +39,8 @@ class AspenDistillation(dm_env.Environment):
     def __init__(self,
                  initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC,
                  product_spec: ProductSpecification = ProductSpecification(purity=0.95),
-                 n_stages_bounds: Tuple[int, int] = (2, 10),
-                 pressure_bounds: Tuple[float, float] = (0.01, 10),
+                 n_stages_bounds: Tuple[int, int] = (2, 150),
+                 pressure_bounds: Tuple[float, float] = (0.01, 50),
                  reflux_ratio_bounds: Tuple[float, float] = (0.01, 20.0),
                  max_steps: int = 30,
                  flowsheet_api: Optional[BaseAspenDistillationAPI] = None):
@@ -107,6 +107,7 @@ class AspenDistillation(dm_env.Environment):
         run_converged = "no separation"
         feed_stream = self._stream_table[self._current_stream_number]
         choose_separate, column_input_spec = self._action_to_column_spec(action)
+
         if choose_separate:
             self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
             self.flowsheet_api.set_column_specification(column_input_spec)
@@ -118,6 +119,7 @@ class AspenDistillation(dm_env.Environment):
             reward = self.calculate_reward(feed_stream, tops_stream, bottoms_stream, column_input_spec,
                                            column_output_spec)
             upcoming_stream = self._get_upcoming_stream()
+            #TODO Make upcoming stream conditional via if-statement. Causes pop from empty deque when both top and bottom stream are at spec
             observation = Observation(
                 created_states=(self._stream_to_observation(tops_stream),
                                 self._stream_to_observation(bottoms_stream)),
@@ -186,9 +188,7 @@ class AspenDistillation(dm_env.Environment):
         tops_stream = self._stream_specification_to_stream(tops_stream_spec)
         bottoms_stream = self._stream_specification_to_stream(bottoms_stream_spec)
         column_output_spec = self.flowsheet_api.get_simulated_column_properties(column_input_specification)
-        # column_output_spec = self.flowsheet_api.get_simulated_column_properties(
-        #                                     column_input_spec=column_input_specification)
-        # simulation_time = self.flowsheet_api.solve_flowsheet.
+        # column_output_spec = self.flowsheet_api.get_simulated_column_properties(column_input_spec=column_input_specification)
         return tops_stream, bottoms_stream, column_output_spec
 
     def _manage_environment_internals(self, tops_stream: Stream,
@@ -200,6 +200,11 @@ class AspenDistillation(dm_env.Environment):
             self._stream_table.append(stream)
             if not stream.is_product:
                 self._stream_numbers_yet_to_be_acted_on.append(stream.number)
+                if self._stream_numbers_yet_to_be_acted_on == deque([]):
+                    print(self._stream_table)
+                    print(tops_stream)
+                    print(bottoms_stream)
+                    breakpoint()
         column = Column(input_spec=column_input_spec,
                         output_spec=column_output_spec,
                         input_stream_number=self._current_stream_number,
@@ -217,7 +222,12 @@ class AspenDistillation(dm_env.Environment):
     def _get_upcoming_stream(self) -> Stream:
         """For the next action, get a stream from the
         self._stream_numbers_yet_to_be_acted_on list."""
-        self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        try:
+            self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        except IndexError:
+            print(f"{self._stream_numbers_yet_to_be_acted_on}")
+            breakpoint()
+
         stream = self._stream_table[self._current_stream_number]
         return stream
 
