@@ -36,7 +36,7 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # simulate the column
     start = time.time()
-    solved = api.solve_flowsheet()
+    time_to_solve, solved = api.solve_flowsheet()
     print(time.time() - start)
     # assert solved
     if solved == False:
@@ -63,8 +63,10 @@ def test_api(api: BaseAspenDistillationAPI):
 
 
     for stream, stream_value in zip([tops, bottoms], [top_stream_value, bottom_stream_value]):
-        if api.stream_is_product(stream, fake_product_specification):
+        is_product, is_outlet = api.stream_is_product_or_outlet(stream, fake_product_specification)
+        if is_product:
             assert stream_value > 0.0
+            assert is_outlet
         else:
             assert stream_value == 0.0
 

@@ -51,7 +51,9 @@ class AspenDistillation(dm_env.Environment):
         self._n_stages_bounds = n_stages_bounds
         self._reflux_ratio_bounds = reflux_ratio_bounds
         # Note: Stream number matches steam index in self._stream_table.
-        self._initial_feed = Stream(specification=initial_feed_spec, is_product=False, number=0,
+        self._initial_feed = Stream(specification=initial_feed_spec,
+                                    is_outlet=False,
+                                    is_product=False, number=0,
                                     value=0.0)
         self._max_n_steps = max_steps  # Maximum number of environment steps.
 
@@ -118,14 +120,17 @@ class AspenDistillation(dm_env.Environment):
                                                column_output_spec)
             reward = self.calculate_reward(feed_stream, tops_stream, bottoms_stream, column_input_spec,
                                            column_output_spec)
-            upcoming_stream = self._get_upcoming_stream()
-            #TODO Make upcoming stream conditional via if-statement. Causes pop from empty deque when both top and bottom stream are at spec
+            done_overall = self.get_done_overall()
+            if not done_overall:
+                upcoming_stream = self._get_upcoming_stream()
+                upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
+            else:
+                upcoming_stream_obs = self._blank_state
             observation = Observation(
                 created_states=(self._stream_to_observation(tops_stream),
                                 self._stream_to_observation(bottoms_stream)),
-                upcoming_state=self._stream_to_observation(upcoming_stream))
-            done_overall = self.get_done_overall()
-            done = Done((tops_stream.is_product, bottoms_stream.is_product), done_overall)
+                upcoming_state=upcoming_stream_obs)
+            done = Done((tops_stream.is_outlet, bottoms_stream.is_outlet), done_overall)
         else:
             # choose not to separate the stream
             self._manage_environment_internals_no_act()
@@ -198,7 +203,7 @@ class AspenDistillation(dm_env.Environment):
         """Update the stream table, column table, and _stream_numbers_yet_to_be_acted_on objects."""
         for stream in [tops_stream, bottoms_stream]:
             self._stream_table.append(stream)
-            if not stream.is_product:
+            if not stream.is_outlet:
                 self._stream_numbers_yet_to_be_acted_on.append(stream.number)
                 if self._stream_numbers_yet_to_be_acted_on == deque([]):
                     print(self._stream_table)
@@ -234,9 +239,9 @@ class AspenDistillation(dm_env.Environment):
     def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
         """Convert StreamSpecification object into a StreamObject for a recently added stream. This
         function also gives the stream a unique number."""
-        is_product = self.flowsheet_api.stream_is_product(stream_spec, self.product_spec)
+        is_product, is_outlet = self.flowsheet_api.stream_is_product_or_outlet(stream_spec, self.product_spec)
         stream_value = self.flowsheet_api.get_stream_value(stream_spec, self.product_spec)
-        stream = Stream(specification=stream_spec, is_product=is_product,
+        stream = Stream(specification=stream_spec, is_product=is_product, is_outlet=is_outlet,
                         value=stream_value, number=len(self._stream_table) + 1)
         return stream
 

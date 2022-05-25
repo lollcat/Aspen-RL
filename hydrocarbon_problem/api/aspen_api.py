@@ -139,17 +139,23 @@ class AspenAPI(BaseAspenDistillationAPI):
 
         return stream_value
 
-    def stream_is_product(self, stream, productspecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
+    def stream_is_product_or_outlet(self, stream: StreamSpecification,
+                                    product_specification: ProductSpecification) -> \
+            Tuple[bool, bool]:
         """Checks whether a stream meets the product specification."""
-        is_purity, component_purities = self._flowsheet.CAL_purity_check(stream, productspecification.purity)
+        is_purity, component_purities = self._flowsheet.CAL_purity_check(
+            stream, product_specification.purity)
         total_flow = sum(stream.molar_flows)
-
-        if np.any(is_purity) or total_flow < 0.001:
-            purity = 1
+        if np.any(is_purity):
+            is_product = True
+            is_outlet = True
         else:
-            purity = 0
-
-        return purity
+            is_product = False
+            if total_flow < 0.001:
+                is_outlet = True
+            else:
+                is_outlet = False
+        return is_product, is_outlet
 
 
 if __name__ == '__main__':

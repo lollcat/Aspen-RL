@@ -57,7 +57,6 @@ class Simulation():
     def STRM_Get_Outputs(self, Name, Chemical):
         STRM_COMP = self.STRM.Elements(Name).Elements("Output").Elements("MOLEFLOW").Elements("MIXED")
         COMP_1 = STRM_COMP.Elements(Chemical).Value
-
         return COMP_1
 
     def STRM_Get_Temperature(self, Name):
@@ -83,12 +82,16 @@ class Simulation():
 
     def BLK_Get_Condenser_Duty(self):
         condenser_duty = self.BLK.Elements("B1").Elements("Output").Elements("COND_DUTY").Value
+        # We overwrite negative values for the reboiler_duty as they don't make sense
+        # (to be looked into further in the future).
         if condenser_duty > 0:
             condenser_duty = 0
         return condenser_duty
 
     def BLK_Get_Reboiler_Duty(self):
         reboiler_duty = self.BLK.Elements("B1").Elements("Output").Elements("REB_DUTY").Value
+        # We overwrite negative values for the reboiler_duty as they don't make sense
+        # (to be looked into further in the future).
         if reboiler_duty < 0:
             reboiler_duty = 0
         return reboiler_duty

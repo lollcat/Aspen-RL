@@ -1,9 +1,8 @@
 import numpy as np
 import time
 
+from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.env.env import AspenDistillation
-from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
-from hydrocarbon_problem.api.aspen_api import AspenAPI
 
 
 def make_fake_agent(env: AspenDistillation):
@@ -18,13 +17,17 @@ def make_fake_agent(env: AspenDistillation):
     return fake_agent
 
 
-def test(n_episodes: int = 2500):
+def test(n_episodes: int = 2500, use_fake_api: bool = True):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
     # api = FakeDistillationAPI()  # this can be changed to AspenAPI to test with Aspen
-    # api = AspenAPIAutoRun()
-    api = AspenAPI()
+    if use_fake_api:
+        from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
+        api = FakeDistillationAPI()  # this can be changed to AspenAPI to test with Aspen
+    else:
+        from hydrocarbon_problem.api.aspen_api import AspenAPI
+        api = AspenAPI()
     env = AspenDistillation(flowsheet_api=api)
     agent = make_fake_agent(env)
     simulation_time = []
@@ -84,65 +87,75 @@ def test(n_episodes: int = 2500):
         _return.append(episode_return)
         episodic_time.append(episode_timer)
         episode += 1
+
+    if use_fake_api is False:
+        api: AspenAPI
+        simulation = api._flowsheet
+        # now if I want to I can acesss some variable saved in simulation
+        print(simulation)
     return simulation_time, converged, _return, episodic_time
 
 
 if __name__ == '__main__':
-    simulation_time, converged, _return, episodic_time = test()
-
-    # Separate the convergence data
-    unconverged_separations = [index for (index, item) in enumerate(converged) if item == False]
-    iterations_without_separation = [index for (index, item) in enumerate(converged) if item == "no separation"]
-    converged_separation = [index for (index, item) in enumerate(converged) if item == True]
-
-    # Number of non-Aspen runs
-    number_of_iterations_without_separation = len(iterations_without_separation)
-
-    # Number of Aspen runs
-    number_of_unconverged_separations = len(unconverged_separations)
-    number_of_converged_separations = len(converged_separation)
-    number_of_non_separations = len(iterations_without_separation)
-    total_separations = number_of_unconverged_separations + number_of_converged_separations
-
-    percent_unconverged_separations = 100 * number_of_unconverged_separations/total_separations
-    percent_converged_separations = 100 * number_of_converged_separations/total_separations
-
-    # Filter returns
-    rl_returns = []
-    filtered_return = [index for (index, item) in enumerate(_return) if item != 0]
-    for i in filtered_return:
-        j = _return[i]
-        rl_returns.append(j)
-    average_rl_returns = np.average(rl_returns)
-
-    # Filter simulation times and calculate the average
-    aspen_time = []
-    sim_time = [index for (index, item) in enumerate(simulation_time) if item != "no separation"]
-    for i in sim_time:
-        j = simulation_time[i]
-        aspen_time.append(j)
-    aspen_time = np.average(aspen_time)
-
-    if number_of_converged_separations == 0 and number_of_unconverged_separations == 0:
-        print("no separations were performed")
-        print(f"Number of iterations = {len(converged)}")
-
+    use_fake_api = True
+    if use_fake_api:
+        test(100)
     else:
-        print(f"Number of iterations: {len(converged)}")
-        print(f"Number of unconverged separations: {number_of_unconverged_separations}, "
-              f"{percent_unconverged_separations} %")
-        print(f"Number of converged separations: {number_of_converged_separations}, "
-              f"{percent_converged_separations} %")
-        print(f"Number of non separations: {number_of_non_separations}")
+        simulation_time, converged, _return, episodic_time = test(api=api)
 
-        # print(f"Episodic returns: {_return}")
-        print(f"Average return: {average_rl_returns}")
+        # Separate the convergence data
+        unconverged_separations = [index for (index, item) in enumerate(converged) if item == False]
+        iterations_without_separation = [index for (index, item) in enumerate(converged) if item == "no separation"]
+        converged_separation = [index for (index, item) in enumerate(converged) if item == True]
 
-        print(f"Average Aspen time: {aspen_time}")
-        # print(f"Total sim array {simulation_time}")
+        # Number of non-Aspen runs
+        number_of_iterations_without_separation = len(iterations_without_separation)
 
-        # print(f"Episodic time: {episodic_time}")
-        print(f"Average episodic time: {np.average(episodic_time)}")
+        # Number of Aspen runs
+        number_of_unconverged_separations = len(unconverged_separations)
+        number_of_converged_separations = len(converged_separation)
+        number_of_non_separations = len(iterations_without_separation)
+        total_separations = number_of_unconverged_separations + number_of_converged_separations
+
+        percent_unconverged_separations = 100 * number_of_unconverged_separations/total_separations
+        percent_converged_separations = 100 * number_of_converged_separations/total_separations
+
+        # Filter returns
+        rl_returns = []
+        filtered_return = [index for (index, item) in enumerate(_return) if item != 0]
+        for i in filtered_return:
+            j = _return[i]
+            rl_returns.append(j)
+        average_rl_returns = np.average(rl_returns)
+
+        # Filter simulation times and calculate the average
+        aspen_time = []
+        sim_time = [index for (index, item) in enumerate(simulation_time) if item != "no separation"]
+        for i in sim_time:
+            j = simulation_time[i]
+            aspen_time.append(j)
+        aspen_time = np.average(aspen_time)
+
+        if number_of_converged_separations == 0 and number_of_unconverged_separations == 0:
+            print("no separations were performed")
+            print(f"Number of iterations = {len(converged)}")
+
+        else:
+            print(f"Number of iterations: {len(converged)}")
+            print(f"Number of unconverged separations: {number_of_unconverged_separations}, "
+                  f"{percent_unconverged_separations} %")
+            print(f"Number of converged separations: {number_of_converged_separations}, "
+                  f"{percent_converged_separations} %")
+            print(f"Number of non separations: {number_of_non_separations}")
+
+            # print(f"Episodic returns: {_return}")
+            print(f"Average return: {average_rl_returns}")
+
+            print(f"Average Aspen time: {aspen_time}")
+            # print(f"Total sim array {simulation_time}")
+
+            # print(f"Episodic time: {episodic_time}")
+            print(f"Average episodic time: {np.average(episodic_time)}")
 
 
 

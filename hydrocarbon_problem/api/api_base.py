@@ -48,8 +48,22 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def stream_is_product(self, stream: StreamSpecification, product_specification: ProductSpecification) -> bool:
-        """Checks whether a stream meets the product specification."""
+    def stream_is_product_or_outlet(self, stream: StreamSpecification,
+                                    product_specification: ProductSpecification) -> \
+            Tuple[bool, bool]:
+        """
+        Checks whether a stream meets the product specification
+        and if the stream exits the process. Some streams may not meet product spec
+        but still exit the process.
+
+        Args:
+            stream: The stream to be classified.
+            product_specification: The definition of what makes a stream a product.
+
+        Returns:
+            is_product: Whether the stream is a product or not.
+            is_outlet: Whether the steam exits the process.
+        """
         raise NotImplementedError
 
 

@@ -23,6 +23,7 @@ class Stream(NamedTuple):
     """Defines stream type, which are managed within the stream table."""
     specification: StreamSpecification
     is_product: bool
+    is_outlet: bool
     number: int
     value: float
 
