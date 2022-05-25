@@ -2,7 +2,7 @@ from typing import Tuple
 import abc
 
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
-    ColumnOutputSpecification  # , ProductSpecification
+    ColumnOutputSpecification, ProductSpecification
 
 
 class BaseAspenDistillationAPI(abc.ABC):
@@ -31,7 +31,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self) -> bool:
+    def solve_flowsheet(self) -> Tuple[float, bool]:
         """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError
 
@@ -43,13 +43,27 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_stream_value(self, stream, product_specification) -> float:
+    def get_stream_value(self, stream: StreamSpecification, product_specification: ProductSpecification) -> float:
         """Calculates the value (per year) of a stream."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def stream_is_product(self, stream, product_specification) -> bool:
-        """Checks whether a stream meets the product specification."""
+    def stream_is_product_or_outlet(self, stream: StreamSpecification,
+                                    product_specification: ProductSpecification) -> \
+            Tuple[bool, bool]:
+        """
+        Checks whether a stream meets the product specification
+        and if the stream exits the process. Some streams may not meet product spec
+        but still exit the process.
+
+        Args:
+            stream: The stream to be classified.
+            product_specification: The definition of what makes a stream a product.
+
+        Returns:
+            is_product: Whether the stream is a product or not.
+            is_outlet: Whether the steam exits the process.
+        """
         raise NotImplementedError
 
 

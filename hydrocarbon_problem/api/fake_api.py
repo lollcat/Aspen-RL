@@ -40,8 +40,8 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
         assert isinstance(column_specification, ColumnInputSpecification)
 
-    def solve_flowsheet(self) -> bool:
-        return True
+    def solve_flowsheet(self) -> Tuple[float, bool]:
+        return 0.1, True
 
     def get_column_cost(self, stream_specification: StreamSpecification,
                         column_input_specification: ColumnInputSpecification,
@@ -50,22 +50,24 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
 
     def get_stream_value(self, stream_specification: StreamSpecification,
                          product_specification: ProductSpecification) -> float:
-        if self.stream_is_product(stream_specification, product_specification):
+        is_product, is_outlet = self.stream_is_product_or_outlet(stream_specification, product_specification)
+        if is_product:
             return 10.0
         else:
             return 0.0
 
-    def stream_is_product(self, stream_specification: StreamSpecification, product_specification:
-                                ProductSpecification) -> bool:
+    def stream_is_product_or_outlet(self, stream: StreamSpecification,
+                                    product_specification: ProductSpecification) -> \
+            Tuple[bool, bool]:
         # for simplicity define the product definition only based off ethane
-        total_flow = stream_specification.molar_flows.ethane + \
-                     stream_specification.molar_flows.propane + \
-                     stream_specification.molar_flows.isobutane + \
-                     stream_specification.molar_flows.n_butane + \
-                     stream_specification.molar_flows.isobutane + \
-                     stream_specification.molar_flows.n_pentane
-        if stream_specification.molar_flows.ethane / total_flow > product_specification.purity:
-            return True
+        total_flow = stream.molar_flows.ethane + \
+                     stream.molar_flows.propane + \
+                     stream.molar_flows.isobutane + \
+                     stream.molar_flows.n_butane + \
+                     stream.molar_flows.isobutane + \
+                     stream.molar_flows.n_pentane
+        if stream.molar_flows.ethane / total_flow > product_specification.purity:
+            return True, True
         else:
-            return False
+            return False, False
 

@@ -1,5 +1,3 @@
-import os
-import subprocess
 from typing import Tuple
 import numpy as np
 # from sqlalchemy import column
@@ -11,8 +9,9 @@ from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpeci
 
 
 class AspenAPI(BaseAspenDistillationAPI):
-    def __init__(self):
-        self._flowsheet: Simulation = Simulation(VISIBILITY=True)
+    def __init__(self, max_solve_iterations: int = 100):
+        self._flowsheet: Simulation = Simulation(VISIBILITY=False,
+                                                 max_iterations=max_solve_iterations)
         self._feed_name: str = "S1"
         self._tops_name: str = "S2"
         self._bottoms_name: str = "S3"
@@ -101,16 +100,15 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-
-    def solve_flowsheet(self) -> bool:
-        converged = (self._flowsheet.Run())
-        return converged
+    def solve_flowsheet(self) -> Tuple[float, bool]:
+        duration, run_converged = self._flowsheet.Run()
+        return duration, run_converged
 
     def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         t_reboiler = column_output_specification.temperature_per_stage[-1]
         t_condenser = column_output_specification.temperature_per_stage[0]
-        total_cost = self._flowsheet.CAL_InvestmentCost(stream_specification.pressure,
+        invest = self._flowsheet.CAL_InvestmentCost(stream_specification.pressure,
                                                         column_input_specification.n_stages,
                                                         column_output_specification.condenser_duty,
                                                         t_reboiler,
@@ -118,27 +116,47 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                         t_condenser,
                                                         column_output_specification.vapor_flow_per_stage,
                                                         column_output_specification.molar_weight_per_stage,
-                                                        column_output_specification.temperature_per_stage) + \
-                     self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
+                                                        column_output_specification.temperature_per_stage)
+        operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
                                                               column_output_specification.condenser_duty)
+        # _invest_check = isinstance(invest, float)
+        # _operating_check = isinstance(operating, float)
+        # if _invest_check == False:
+        #     print(f"{invest}")
+        #     print(f"{operating}")
+        #     breakpoint()
+        # elif _operating_check == False:
+        #     print(f"{invest}")
+        #     print(f"{operating}")
+        #     breakpoint()
+
+        total_cost = invest+operating
+
         return total_cost
 
-    def get_stream_value(self, stream, ProductSpecification):
+    def get_stream_value(self, stream, product_specification) -> float:
         """Calculates the value (per year) of a stream."""
-        stream_value, component_purities = self._flowsheet.CAL_stream_value(stream, ProductSpecification.purity)
+        stream_value, component_purities = self._flowsheet.CAL_stream_value(stream, product_specification.purity)
 
-        return stream_value/1000, component_purities*100
+        return stream_value
 
-    def stream_is_product(self, stream, ProductSpecification) -> int:  # Tuple[StreamSpecification, StreamSpecification]:
+    def stream_is_product_or_outlet(self, stream: StreamSpecification,
+                                    product_specification: ProductSpecification) -> \
+            Tuple[bool, bool]:
         """Checks whether a stream meets the product specification."""
-        is_purity, component_purities = self._flowsheet.CAL_purity_check(stream, ProductSpecification.purity)
-
+        is_purity, component_purities = self._flowsheet.CAL_purity_check(
+            stream, product_specification.purity)
+        total_flow = sum(stream.molar_flows)
         if np.any(is_purity):
-            purity = 1
+            is_product = True
+            is_outlet = True
         else:
-            purity = 0
-
-        return purity
+            is_product = False
+            if total_flow < 0.001:
+                is_outlet = True
+            else:
+                is_outlet = False
+        return is_product, is_outlet
 
 
 if __name__ == '__main__':
