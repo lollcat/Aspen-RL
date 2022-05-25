@@ -1,1 +1,6 @@
 dm_env
+chex
+dm_haiku
+optax
+dm_acme
+distrax

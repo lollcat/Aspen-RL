@@ -1,7 +1,6 @@
 import numpy as np
 import time
 
-from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.env.env import AspenDistillation
 
 
@@ -45,9 +44,10 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
         while not timestep.last():
             observation = timestep.observation.upcoming_state
             action = agent(observation)
-            timestep, duration, run_converged = env.step(action)
-            simulation_time.append(duration)
-            converged.append(run_converged)
+            timestep = env.step(action)
+            # TODO: Steffen, rather access these variables internally.
+            # simulation_time.append(duration)
+            # converged.append(run_converged)
             print(timestep)
             episode_return += timestep.reward
             discrete_action = action[0]

@@ -9,7 +9,7 @@ from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnInputSpecification, ColumnOutputSpecification, ProductSpecification
-from hydrocarbon_problem.env.types_ import Stream, Column, Observation, Done, Discount
+from hydrocarbon_problem.env.types_ import Stream, Column, TimestepObservation, Done, Discount
 
 Action = Tuple[np.ndarray, np.ndarray]
 
@@ -68,7 +68,14 @@ class AspenDistillation(dm_env.Environment):
 
     def observation_spec(self) -> specs.Array:
         input_obs = self._stream_to_observation(self._initial_feed)
-        return specs.Array(shape=input_obs.shape, dtype=float)
+        single_stream_obs = specs.Array(shape=input_obs.shape, dtype=float)
+        return single_stream_obs
+
+    def next_observation(self) -> TimestepObservation:
+        """This is the observation stored in the timestep returned by the
+        environment step function."""
+        single_stream_obs = self.observation_spec()
+        return TimestepObservation(single_stream_obs, single_stream_obs)
 
     def discount_spec(self):
         discount_tops = specs.BoundedArray(
@@ -93,7 +100,7 @@ class AspenDistillation(dm_env.Environment):
         self._stream_numbers_yet_to_be_acted_on = deque()
         self._current_stream_number = self._initial_feed.number
         obs = self._stream_to_observation(self._initial_feed)
-        observation = Observation(
+        observation = TimestepObservation(
             created_states=(np.zeros_like(obs), np.zeros_like(obs)),
             upcoming_state=obs)
         timestep = dm_env.TimeStep(step_type=dm_env.StepType.FIRST, observation=observation,
@@ -101,12 +108,10 @@ class AspenDistillation(dm_env.Environment):
         self._steps = 0
         return timestep
 
-    def step(self, action: Action) -> Tuple[dm_env.TimeStep, float, bool]:
+    def step(self, action: Action) -> dm_env.TimeStep:
         """The step function of the environment, which takes in an action and returns a
         dm_env.TimeStep object which contains the step_type, reward, discount and observation."""
         self._steps += 1
-        duration = "no separation"
-        run_converged = "no separation"
         feed_stream = self._stream_table[self._current_stream_number]
         choose_separate, column_input_spec = self._action_to_column_spec(action)
 
@@ -126,7 +131,7 @@ class AspenDistillation(dm_env.Environment):
                 upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
             else:
                 upcoming_stream_obs = self._blank_state
-            observation = Observation(
+            observation = TimestepObservation(
                 created_states=(self._stream_to_observation(tops_stream),
                                 self._stream_to_observation(bottoms_stream)),
                 upcoming_state=upcoming_stream_obs)
@@ -141,7 +146,7 @@ class AspenDistillation(dm_env.Environment):
                 upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
             else:
                 upcoming_stream_obs = self._blank_state
-            observation = Observation(
+            observation = TimestepObservation(
                 created_states=(self._blank_state, self._blank_state),
                 upcoming_state=upcoming_stream_obs)
             done = Done((True, True), done_overall)
@@ -151,7 +156,7 @@ class AspenDistillation(dm_env.Environment):
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
                                    reward=reward, discount=discount)
-        return timestep, duration, run_converged
+        return timestep
 
 
     def get_done_overall(self):

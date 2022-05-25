@@ -5,10 +5,15 @@ import numpy as np
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, ColumnOutputSpecification
 
 
+SingleStreamObservation = np.array
+
 """Types for the environment."""
-class Observation(NamedTuple):
-    created_states: Tuple[np.ndarray, np.ndarray]  # the states created by the current action.
-    upcoming_state: np.ndarray  # the next state that will be acted upon
+class TimestepObservation(NamedTuple):
+    """The observation used within the Timestep returned by the environment step."""
+    # the states created by the current action.
+    created_states: Tuple[SingleStreamObservation, SingleStreamObservation]
+    # the next state that will be acted upon
+    upcoming_state: SingleStreamObservation
 
 class Done(NamedTuple):
     created_states: Tuple[bool, bool]  # if the created streams are product or still need to be
