@@ -27,7 +27,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
         api = FakeDistillationAPI()  # this can be changed to AspenAPI to test with Aspen
     else:
         from hydrocarbon_problem.api.aspen_api import AspenAPI
-        api = AspenAPI()
+        api = AspenAPI(max_solve_iterations=100)
     env = AspenDistillation(flowsheet_api=api)
     agent = make_fake_agent(env)
     simulation_time = []
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     if use_fake_api:
         test(100)
     else:
-        simulation_time, converged, _return, episodic_time = test(api=api)
+        simulation_time, converged, _return, episodic_time = test()
 
         # Separate the convergence data
         unconverged_separations = [index for (index, item) in enumerate(converged) if item == False]

@@ -7,13 +7,16 @@ import time
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
-    def __init__(self, VISIBILITY):
+    def __init__(self, VISIBILITY, max_iterations: int = 100):
         print(os.getcwd())
         os.chdir('../AspenSimulation')
         print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = True
+        self.max_iterations = max_iterations
+        # total_timer = 5
+        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
 
     @property
     def BLK(self):
@@ -119,10 +122,6 @@ class Simulation():
         duration = 0.0
         run_converged = False
         tries = 0
-        iterations = 100
-        # total_timer = 5
-        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = iterations
-
         while tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
