@@ -17,7 +17,7 @@ def make_fake_agent(env: AspenDistillation):
     return fake_agent
 
 
-def test(n_episodes: int = 2500, use_fake_api: bool = True):
+def test(n_episodes: int = 2500, use_fake_api: bool = False):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
@@ -45,9 +45,14 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
         while not timestep.last():
             observation = timestep.observation.upcoming_state
             action = agent(observation)
-            timestep, duration, run_converged = env.step(action)
-            simulation_time.append(duration)
-            converged.append(run_converged)
+            timestep = env.step(action)
+            if use_fake_api is False:
+                api: AspenAPI
+                # now if I want to I can accesss some variable saved in simulation
+                simulation = api._flowsheet
+
+            simulation_time.append(simulation.duration)
+            converged.append(simulation.converged)
             print(timestep)
             episode_return += timestep.reward
             discrete_action = action[0]
@@ -88,11 +93,6 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
         episodic_time.append(episode_timer)
         episode += 1
 
-    if use_fake_api is False:
-        api: AspenAPI
-        simulation = api._flowsheet
-        # now if I want to I can acesss some variable saved in simulation
-        print(simulation)
     return simulation_time, converged, _return, episodic_time
 
 
@@ -110,17 +110,16 @@ if __name__ == '__main__':
 
         # Number of non-Aspen runs
         number_of_iterations_without_separation = len(iterations_without_separation)
-
-        # Number of Aspen runs
+        # Number of unconverged Aspen runs
         number_of_unconverged_separations = len(unconverged_separations)
+        # Number of converged Aspen runs
         number_of_converged_separations = len(converged_separation)
-        number_of_non_separations = len(iterations_without_separation)
         total_separations = number_of_unconverged_separations + number_of_converged_separations
 
         percent_unconverged_separations = 100 * number_of_unconverged_separations/total_separations
         percent_converged_separations = 100 * number_of_converged_separations/total_separations
 
-        # Filter returns
+        # Filter returns, exclude all 0 returns
         rl_returns = []
         filtered_return = [index for (index, item) in enumerate(_return) if item != 0]
         for i in filtered_return:
@@ -146,7 +145,7 @@ if __name__ == '__main__':
                   f"{percent_unconverged_separations} %")
             print(f"Number of converged separations: {number_of_converged_separations}, "
                   f"{percent_converged_separations} %")
-            print(f"Number of non separations: {number_of_non_separations}")
+            print(f"Number of non separations: {number_of_iterations_without_separation}")
 
             # print(f"Episodic returns: {_return}")
             print(f"Average return: {average_rl_returns}")

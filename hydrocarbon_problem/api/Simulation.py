@@ -15,8 +15,9 @@ class Simulation():
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = True
         self.max_iterations = max_iterations
-        # total_timer = 5
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        self.duration = 0
+        self.converged = False
 
     @property
     def BLK(self):
@@ -117,10 +118,7 @@ class Simulation():
             V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
         return V
 
-
     def Run(self):
-        duration = 0.0
-        run_converged = False
         tries = 0
         while tries != 2:
             start = time.time()
@@ -132,13 +130,11 @@ class Simulation():
             #      self.AspenSimulation.Engine.Stop()
             # #     break
             # #     # total_timer -= 1
-            duration = time.time() - start
-
-            print(f"Run = {duration}")
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+            self.duration = time.time() - start
+            self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {converged}")
-            if converged == 0 or converged == 2:
+            print(f"Convergence: {self.converged}")
+            if self.converged == 0 or self.converged == 2:
                 run_converged = True
                 break
             else:
@@ -146,9 +142,6 @@ class Simulation():
                 # self.AspenSimulation.Reinit()
                 time.sleep(1)
                 tries += 1
-
-        return duration, run_converged
-
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
         P = pressure
@@ -171,14 +164,20 @@ class Simulation():
     def CAL_LMTD(self, tops_temperature):
         T_cool_in = 30  # Supply temperature of cooling water [oC]
         T_cool_out = 40  # Return temperature of cooling water [oC]
-        delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
-                (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
-        return delta_Tm_cnd.real
+        if tops_temperature > T_cool_out:
+            delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
+                    (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
+        else:
+            delta_Tm_cnd = "Not a real number"
+        return delta_Tm_cnd
 
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
         delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
-        A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        if delta_Tm_cnd == "Not a real number":
+            A_cnd = 0
+        else:
+            A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
         return A_cnd
 
     def CAL_HT_Reboiler_Area(self, reboiler_temperature, reboiler_duty):
