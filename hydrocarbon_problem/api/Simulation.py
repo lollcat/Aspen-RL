@@ -16,8 +16,10 @@ class Simulation():
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = True
         self.max_iterations = max_iterations
-        # total_timer = 5
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        self.duration = 0
+        self.converged = False
+        self.tries = 0
 
     @property
     def BLK(self):
@@ -114,42 +116,29 @@ class Simulation():
 
     def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
         V = []
-        for i in range(1, N_stages + 1):
-            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
+        try:
+            for i in range(1, N_stages + 1):
+                V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
+        except AttributeError:
+            breakpoint()
         return V
 
-
     def Run(self):
-        duration = 0.0
-        run_converged = False
-        tries = 0
-        while tries != 2:
+        self.tries = 0
+        while self.tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            # while self.AspenSimulation.Engine.IsRunning: # and total_timer > 0:
-            # # #     timer = datetime.timedelta(seconds=total_timer)
-            # #     # print(timer)
-            #      time.sleep(1)
-            #      self.AspenSimulation.Engine.Stop()
-            # #     break
-            # #     # total_timer -= 1
-            duration = time.time() - start
+            self.duration = time.time() - start
 
-            print(f"Run = {duration}")
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+            print(f"Run = {self.duration}")
+            self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {converged}")
-            if converged == 0 or converged == 2:
-                run_converged = True
+            print(f"Convergence: {self.converged}")
+            if self.converged == 0 or self.converged == 2:
                 break
             else:
-                run_converged = False
-                # self.AspenSimulation.Reinit()
                 time.sleep(1)
-                tries += 1
-
-        return duration, run_converged
-
+                self.tries += 1
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
         P = pressure

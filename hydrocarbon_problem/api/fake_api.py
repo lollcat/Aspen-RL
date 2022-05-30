@@ -40,8 +40,8 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
         assert isinstance(column_specification, ColumnInputSpecification)
 
-    def solve_flowsheet(self) -> Tuple[float, bool]:
-        return 0.1, True
+    def solve_flowsheet(self) -> None:
+        pass
 
     def get_column_cost(self, stream_specification: StreamSpecification,
                         column_input_specification: ColumnInputSpecification,

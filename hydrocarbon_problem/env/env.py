@@ -13,14 +13,14 @@ from hydrocarbon_problem.env.types_ import Stream, Column, TimestepObservation, 
 
 Action = Tuple[np.ndarray, np.ndarray]
 
-_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=0.0170,
-                                                  propane=1.11,
-                                                  isobutane=1.1980,
-                                                  n_butane=0.516,
-                                                  isopentane=0.334,
-                                                  n_pentane=0.173)
+_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=1.8204,
+                                                  propane=1022.155,
+                                                  isobutane=1081.621,
+                                                  n_butane=464.809,
+                                                  isopentane=309.771,
+                                                  n_pentane=155.644)
 DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
-                                                pressure=17.4,
+                                                pressure=25,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
 
 class AspenDistillation(dm_env.Environment):
@@ -44,6 +44,8 @@ class AspenDistillation(dm_env.Environment):
                  reflux_ratio_bounds: Tuple[float, float] = (0.01, 20.0),
                  max_steps: int = 30,
                  flowsheet_api: Optional[BaseAspenDistillationAPI] = None):
+        self.tops_stream = None
+        self.bots_stream = None
         self.flowsheet_api = flowsheet_api if flowsheet_api else FakeDistillationAPI()
         # hyper-parameters of the distillation environment
         self.product_spec = product_spec
@@ -118,12 +120,12 @@ class AspenDistillation(dm_env.Environment):
         if choose_separate:
             self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
             self.flowsheet_api.set_column_specification(column_input_spec)
-            duration, run_converged = self.flowsheet_api.solve_flowsheet()
-            tops_stream, bottoms_stream, column_output_spec = \
+            self.flowsheet_api.solve_flowsheet()
+            self.tops_stream, self.bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
-            self._manage_environment_internals(tops_stream, bottoms_stream, column_input_spec,
+            self._manage_environment_internals(self.tops_stream, self.bottoms_stream, column_input_spec,
                                                column_output_spec)
-            reward = self.calculate_reward(feed_stream, tops_stream, bottoms_stream, column_input_spec,
+            reward = self.calculate_reward(feed_stream, self.tops_stream, self.bottoms_stream, column_input_spec,
                                            column_output_spec)
             done_overall = self.get_done_overall()
             if not done_overall:
@@ -132,10 +134,10 @@ class AspenDistillation(dm_env.Environment):
             else:
                 upcoming_stream_obs = self._blank_state
             observation = TimestepObservation(
-                created_states=(self._stream_to_observation(tops_stream),
-                                self._stream_to_observation(bottoms_stream)),
+                created_states=(self._stream_to_observation(self.tops_stream),
+                                self._stream_to_observation(self.bottoms_stream)),
                 upcoming_state=upcoming_stream_obs)
-            done = Done((tops_stream.is_outlet, bottoms_stream.is_outlet), done_overall)
+            done = Done((self.tops_stream.is_outlet, self.bottoms_stream.is_outlet), done_overall)
         else:
             # choose not to separate the stream
             self._manage_environment_internals_no_act()
@@ -150,6 +152,7 @@ class AspenDistillation(dm_env.Environment):
                 created_states=(self._blank_state, self._blank_state),
                 upcoming_state=upcoming_stream_obs)
             done = Done((True, True), done_overall)
+        print(f"Done = {done}")
         discount = Discount((np.array(1 - done.created_states[0]),
                              np.array(1 - done.created_states[1])),
                         np.array(1-done.overall))
@@ -164,8 +167,7 @@ class AspenDistillation(dm_env.Environment):
         maximum number of environment steps have been taken, or the
         self._stream_numbers_yet_to_be_acted_on is empty. """
         return self._steps >= self._max_n_steps or \
-                           len(self._stream_numbers_yet_to_be_acted_on) == 0
-
+               len(self._stream_numbers_yet_to_be_acted_on) == 0
 
 
     def _action_to_column_spec(self, action: Action) -> Tuple[bool,
@@ -210,11 +212,6 @@ class AspenDistillation(dm_env.Environment):
             self._stream_table.append(stream)
             if not stream.is_outlet:
                 self._stream_numbers_yet_to_be_acted_on.append(stream.number)
-                if self._stream_numbers_yet_to_be_acted_on == deque([]):
-                    print(self._stream_table)
-                    print(tops_stream)
-                    print(bottoms_stream)
-                    breakpoint()
         column = Column(input_spec=column_input_spec,
                         output_spec=column_output_spec,
                         input_stream_number=self._current_stream_number,
