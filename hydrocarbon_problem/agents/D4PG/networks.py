@@ -2,12 +2,11 @@
 """D4PG networks definition."""
 
 from hydrocarbon_problem.env.env import AspenDistillation
-from typing import Tuple, Protocol, Union, NamedTuple
+from typing import Tuple, Protocol, Union, NamedTuple, Sequence
 
 import chex
 
 from hydrocarbon_problem.agents.base import Observation, Action, NextObservation
-
 
 class PolicyParams(NamedTuple):
     mean: chex.Array
@@ -60,12 +59,6 @@ class D4PGNetworks(NamedTuple):
     policy_network: PolicyNetwork
     critic_network: CriticNetwork
 
-
-class D4PGNetworks(NamedTuple):
-    """Network and pure functions for the D4PG agent"""
-    policy_network: PolicyNetwork
-    critic_network: CriticNetwork
-
     def make_networks(
             # spec: specs.EnvironmentSpec,
             policy_layer_sizes: Sequence[int] = (300, 200),
@@ -84,7 +77,7 @@ class D4PGNetworks(NamedTuple):
     def _actor_fn(obs):
         network = hk.Sequential([
             utils.batch_concat,
-            networks_lib.LayerNormMLP(policy_layer_sizes, activate_final=true)
+            networks_lib.LayerNormMLP(policy_layer_sizes, activate_final=True)
             networks_lib.NearZeroInitializedLinear(num_dimensions),
             networks_lib.TanhToSpec(action_spec),
         ])
