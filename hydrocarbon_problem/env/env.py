@@ -113,7 +113,7 @@ class AspenDistillation(dm_env.Environment):
         if choose_separate:
             self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
             self.flowsheet_api.set_column_specification(column_input_spec)
-            duration, run_converged = self.flowsheet_api.solve_flowsheet()
+            self.flowsheet_api.solve_flowsheet()
             tops_stream, bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
             self._manage_environment_internals(tops_stream, bottoms_stream, column_input_spec,
@@ -151,7 +151,7 @@ class AspenDistillation(dm_env.Environment):
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
                                    reward=reward, discount=discount)
-        return timestep, duration, run_converged
+        return timestep
 
 
     def get_done_overall(self):

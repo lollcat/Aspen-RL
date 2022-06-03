@@ -5,18 +5,20 @@ import numpy as np
 import time
 
 class Simulation():
-    AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
+    # AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
     def __init__(self, VISIBILITY, max_iterations: int = 100):
-        print(os.getcwd())
-        os.chdir('../AspenSimulation')
-        print(os.getcwd())
-        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        self.AspenSimulation.Visible = VISIBILITY
-        self.AspenSimulation.SuppressDialogs = True
-        self.max_iterations = max_iterations
-        # total_timer = 5
-        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        # print(os.getcwd())
+        # os.chdir('../AspenSimulation')
+        # print(os.getcwd())
+        # self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        # self.AspenSimulation.Visible = VISIBILITY
+        # self.AspenSimulation.SuppressDialogs = True
+        # self.max_iterations = max_iterations
+        # self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        self.duration = 0
+        self.converged = False
+        self.tries = 0
 
     @property
     def BLK(self):
@@ -119,36 +121,20 @@ class Simulation():
 
 
     def Run(self):
-        duration = 0.0
-        run_converged = False
-        tries = 0
-        while tries != 2:
+        while self.tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            # while self.AspenSimulation.Engine.IsRunning: # and total_timer > 0:
-            # # #     timer = datetime.timedelta(seconds=total_timer)
-            # #     # print(timer)
-            #      time.sleep(1)
-            #      self.AspenSimulation.Engine.Stop()
-            # #     break
-            # #     # total_timer -= 1
-            duration = time.time() - start
+            self.duration = time.time() - start
 
-            print(f"Run = {duration}")
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+            print(f"Run = {self.duration}")
+            self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {converged}")
-            if converged == 0 or converged == 2:
-                run_converged = True
+            print(f"Convergence: {self.converged}")
+            if self.converged == 0 or self.converged == 2:
                 break
             else:
-                run_converged = False
-                # self.AspenSimulation.Reinit()
                 time.sleep(1)
-                tries += 1
-
-        return duration, run_converged
-
+                self.tries += 1
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
         P = pressure
@@ -258,6 +244,62 @@ class Simulation():
         OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000  # T€/y
         return OperatingCost
 
+    def Excel_CAL_stream_value(self, stream_specification,
+                         product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
+        """Calculates the value (per year) of a stream."""
+
+        up_time = 8400 * 3600  # seconds per year, assuming 8400 hours of uptime
+        is_purity = []
+
+        for k in range(0, len(product_specification)):
+            if product_specification[k] >= 0.95:
+                is_purity.append(1)
+            elif product_specification[k] < 0.95:
+                is_purity.append(0)
+
+        component_specifications = {
+            'ethane': {'index': 0, 'molar weight': 30.07, 'price': 125.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'propane': {'index': 1, 'molar weight': 44.1, 'price': 204.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isobutane': {'index': 2, 'molar weight': 58.12, 'price': 272.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_butane': {'index': 3, 'molar weight': 58.12, 'price': 249.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
+        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
+
+        for entry in component_specifications:
+            if sum(is_purity) > 0:
+                component_specifications[entry]['mass flow'] = stream_specification[
+                                                                   component_specifications[entry]['index']] * \
+                                                               component_specifications[entry][
+                                                                   'molar weight'] / 1000 * up_time  # ton/year
+                component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] \
+                                                                  *component_specifications[entry]['price'] * \
+                                                                  component_specifications[entry][
+                                                                      'mass flow']/1000  # T€/year
+            elif sum(is_purity) == 0:
+                component_specifications[entry]['stream value'] = 0
+
+        total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
+
+        return total_stream_value
+
+    def CAL_purity_check(self, stream_specification, product_specification):
+
+        molar_flows = stream_specification.molar_flows
+        is_purity = np.zeros(len(molar_flows), dtype=int)
+        component_purities = np.zeros(len(molar_flows))
+        total_flow = sum(molar_flows)
+
+        # if total_flow > 0.001:
+        for entry in range(0, len(molar_flows)):
+            component_purities[entry] = molar_flows[entry] / total_flow
+            if component_purities[entry] >= product_specification:
+                is_purity[entry] = 1
+            elif component_purities[entry] < product_specification:
+                is_purity[entry] = 0
+
+        return is_purity, component_purities
+
     def CAL_stream_value(self, stream_specification,
                          product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
         """Calculates the value (per year) of a stream."""
@@ -290,20 +332,3 @@ class Simulation():
         total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
 
         return total_stream_value, component_purities
-
-    def CAL_purity_check(self, stream_specification, product_specification):
-
-        molar_flows = stream_specification.molar_flows
-        is_purity = np.zeros(len(molar_flows), dtype=int)
-        component_purities = np.zeros(len(molar_flows))
-        total_flow = sum(molar_flows)
-
-        # if total_flow > 0.001:
-        for entry in range(0, len(molar_flows)):
-            component_purities[entry] = molar_flows[entry] / total_flow
-            if component_purities[entry] >= product_specification:
-                is_purity[entry] = 1
-            elif component_purities[entry] < product_specification:
-                is_purity[entry] = 0
-
-        return is_purity, component_purities

@@ -10,7 +10,7 @@ from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpeci
 
 class AspenAPI(BaseAspenDistillationAPI):
     def __init__(self, max_solve_iterations: int = 100):
-        self._flowsheet: Simulation = Simulation(VISIBILITY=False,
+        self._flowsheet: Simulation = Simulation(VISIBILITY=True,
                                                  max_iterations=max_solve_iterations)
         self._feed_name: str = "S1"
         self._tops_name: str = "S2"
@@ -100,9 +100,28 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-    def solve_flowsheet(self) -> Tuple[float, bool]:
-        duration, run_converged = self._flowsheet.Run()
-        return duration, run_converged
+    def solve_flowsheet(self) -> None:
+        self._flowsheet.Run()
+
+    def EXCEL_get_column_cost(self, stream_spec, column_output,
+                              temp_profile, vap_flow_profile, vap_MW_profile):
+        t_reboiler = temp_profile[-1]
+        t_condenser = temp_profile[0]
+        invest = self._flowsheet.CAL_InvestmentCost(pressure=stream_spec,
+                                                    n_stages=len(temp_profile),
+                                                    condenser_duty=column_output[0],
+                                                    reboiler_temperature=t_reboiler,
+                                                    reboiler_duty=column_output[1],
+                                                    tops_temperature=t_condenser,
+                                                    vapor_flows=vap_flow_profile,
+                                                    stage_mw=vap_MW_profile,
+                                                    stage_temp=temp_profile)
+        operating = self._flowsheet.CAL_Annual_OperatingCost(reboiler_duty=column_output[1],
+                                                              condenser_duty=column_output[0])
+
+        total_cost = invest+operating
+
+        return total_cost
 
     def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
@@ -119,16 +138,6 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                         column_output_specification.temperature_per_stage)
         operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
                                                               column_output_specification.condenser_duty)
-        # _invest_check = isinstance(invest, float)
-        # _operating_check = isinstance(operating, float)
-        # if _invest_check == False:
-        #     print(f"{invest}")
-        #     print(f"{operating}")
-        #     breakpoint()
-        # elif _operating_check == False:
-        #     print(f"{invest}")
-        #     print(f"{operating}")
-        #     breakpoint()
 
         total_cost = invest+operating
 

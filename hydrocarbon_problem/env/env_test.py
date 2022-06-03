@@ -57,8 +57,8 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
             print(timestep)
             episode_return += timestep.reward
             discrete_action = action[0]
-            if discrete_action == 0:  # choose not to seperate
-                # if we don't seperate then the created states are black, 0 reward is given, and
+            if discrete_action == 0:  # choose not to separate
+                # if we don't separate then the created states are black, 0 reward is given, and
                 # the discount for the created states is zero
                 assert timestep.reward == 0.0
                 assert timestep.discount.created_states == (0, 0)

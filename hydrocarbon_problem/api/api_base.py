@@ -31,7 +31,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self) -> Tuple[float, bool]:
+    def solve_flowsheet(self) -> None:
         """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError
 
