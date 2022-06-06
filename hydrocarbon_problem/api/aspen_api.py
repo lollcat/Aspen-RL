@@ -9,9 +9,11 @@ from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpeci
 
 
 class AspenAPI(BaseAspenDistillationAPI):
-    def __init__(self, max_solve_iterations: int = 100):
+    def __init__(self, max_solve_iterations: int = 100,
+                 flowsheet_path: str = "HydrocarbonMixture.bkp"):
         self._flowsheet: Simulation = Simulation(VISIBILITY=False,
-                                                 max_iterations=max_solve_iterations)
+                                                 max_iterations=max_solve_iterations,
+                                                 flowsheet_path=flowsheet_path)
         self._feed_name: str = "S1"
         self._tops_name: str = "S2"
         self._bottoms_name: str = "S3"

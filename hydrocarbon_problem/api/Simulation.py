@@ -7,11 +7,12 @@ import time
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
-    def __init__(self, VISIBILITY, max_iterations: int = 100):
+    def __init__(self, VISIBILITY, max_iterations: int = 100,
+                 flowsheet_path: str = "HydrocarbonMixture.bkp"):
         print(os.getcwd())
         os.chdir('../AspenSimulation')
         print(os.getcwd())
-        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = True
         self.max_iterations = max_iterations
