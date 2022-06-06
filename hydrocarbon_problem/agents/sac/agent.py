@@ -1,8 +1,7 @@
-from typing import NamedTuple, Tuple, Optional, Dict, Iterator
+from typing import Tuple, Dict, Iterator
 
-from hydrocarbon_problem.agents.base import SelectAction, Action, AgentUpdate, Transition, Observation
-from hydrocarbon_problem.env.env import AspenDistillation
-import jax.numpy as jnp
+from hydrocarbon_problem.agents.base import SelectAction, Action, AgentUpdate, Transition,\
+    Observation
 import jax
 import optax
 import chex
