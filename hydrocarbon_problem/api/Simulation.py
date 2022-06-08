@@ -8,15 +8,17 @@ class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
     def __init__(self, VISIBILITY, max_iterations: int = 100):
-        print(os.getcwd())
-        os.chdir('../AspenSimulation')
-        print(os.getcwd())
-        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        self.AspenSimulation.Visible = VISIBILITY
-        self.AspenSimulation.SuppressDialogs = True
-        self.max_iterations = max_iterations
-        # total_timer = 5
-        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        # print(os.getcwd())
+        # os.chdir('../AspenSimulation')
+        # print(os.getcwd())
+        # self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        # self.AspenSimulation.Visible = VISIBILITY
+        # self.AspenSimulation.SuppressDialogs = True
+        # self.max_iterations = max_iterations
+        # self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        self.duration = 0
+        self.converged = False
+        self.tries = 0
 
     @property
     def BLK(self):
@@ -125,29 +127,17 @@ class Simulation():
         while tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            # while self.AspenSimulation.Engine.IsRunning: # and total_timer > 0:
-            # # #     timer = datetime.timedelta(seconds=total_timer)
-            # #     # print(timer)
-            #      time.sleep(1)
-            #      self.AspenSimulation.Engine.Stop()
-            # #     break
-            # #     # total_timer -= 1
-            duration = time.time() - start
+            self.duration = time.time() - start
 
-            print(f"Run = {duration}")
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
-                           "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {converged}")
-            if converged == 0 or converged == 2:
-                run_converged = True
+            print(f"Run = {self.duration}")
+            self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+                "B1").Elements("Output").Elements("BLKSTAT").Value
+            print(f"Convergence: {self.converged}")
+            if self.converged == 0 or self.converged == 2:
                 break
             else:
-                run_converged = False
-                # self.AspenSimulation.Reinit()
                 time.sleep(1)
-                tries += 1
-
-        return duration, run_converged
+                self.tries += 1
 
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
@@ -158,7 +148,7 @@ class Simulation():
 
         for i in range(0, n_stages - 1):
             Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-                R * (stage_temp[i] + 273.15) * stage_mw[i] * 1000 / (P * 1e5)))]
+                R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
 
         Diameter = 1.1 * max(Effective_Diameter)
         return Diameter
@@ -178,7 +168,11 @@ class Simulation():
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
         delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
-        A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        if condenser_duty < 0:
+            A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        else:
+            A_cnd = 0
+
         return A_cnd
 
     def CAL_HT_Reboiler_Area(self, reboiler_temperature, reboiler_duty):
@@ -222,7 +216,7 @@ class Simulation():
         F_cap = 0.2  # Capital charge factor (0.2, fixed)
         F_L = 5  # Lang factor (5, fixed)
         C_inv = F_L * C_eqp
-        InvestmentCost = F_cap * C_inv
+        InvestmentCost = F_cap * C_inv /1000 # M€
 
         invest = isinstance(InvestmentCost, float)
         if invest == False:
@@ -238,7 +232,7 @@ class Simulation():
             print(f"C_inv: {C_inv}")
             print(f"InvestmentCost: {InvestmentCost}")
             breakpoint()
-        return InvestmentCost
+        return InvestmentCost, D
 
     def CAL_OperatingCost(self, reboiler_duty, condenser_duty):
         M = 18  # Molar weight of water [g/mol] (18, fixed)
@@ -255,8 +249,47 @@ class Simulation():
 
     def CAL_Annual_OperatingCost(self, reboiler_duty, condenser_duty):
         t_a = 8400
-        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000  # T€/y
+        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000000  # M€/y
         return OperatingCost
+
+    def Excel_CAL_stream_value(self, stream_specification,
+                               product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
+        """Calculates the value (per year) of a stream."""
+
+        up_time = 8400  # seconds per year, assuming 8400 hours of uptime
+        is_purity = []
+
+        for k in range(0, len(product_specification)):
+            if product_specification[k] >= 0.95:
+                is_purity.append(1)
+            elif product_specification[k] < 0.95:
+                is_purity.append(0)
+
+        component_specifications = {
+            'ethane': {'index': 0, 'molar weight': 30.07, 'price': 125.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'propane': {'index': 1, 'molar weight': 44.1, 'price': 204.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isobutane': {'index': 2, 'molar weight': 58.12, 'price': 272.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_butane': {'index': 3, 'molar weight': 58.12, 'price': 249.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
+        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
+
+        for entry in component_specifications:
+            if sum(is_purity) > 0:
+                component_specifications[entry]['mass flow'] = stream_specification[
+                                                                   component_specifications[entry]['index']] * \
+                                                               component_specifications[entry][
+                                                                   'molar weight'] / 1000 * up_time  # ton/year
+                component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] \
+                                                                  * component_specifications[entry]['price'] * \
+                                                                  component_specifications[entry][
+                                                                      'mass flow'] / 1000000  # M€/year
+            elif sum(is_purity) == 0:
+                component_specifications[entry]['stream value'] = 0
+
+        total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
+
+        return total_stream_value
 
     def CAL_stream_value(self, stream_specification,
                          product_specification):  # , component_specifications, molar_flows, stream_component_specifications):

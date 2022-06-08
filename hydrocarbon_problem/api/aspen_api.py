@@ -104,6 +104,26 @@ class AspenAPI(BaseAspenDistillationAPI):
         duration, run_converged = self._flowsheet.Run()
         return duration, run_converged
 
+    def EXCEL_get_column_cost(self, stream_spec, column_output,
+                              temp_profile, vap_flow_profile, vap_MW_profile):
+        t_reboiler = temp_profile[-1]
+        t_condenser = temp_profile[0]
+        invest, diameter = self._flowsheet.CAL_InvestmentCost(pressure=stream_spec,
+                                                    n_stages=len(temp_profile),
+                                                    condenser_duty=column_output[0],
+                                                    reboiler_temperature=t_reboiler,
+                                                    reboiler_duty=column_output[1],
+                                                    tops_temperature=t_condenser,
+                                                    vapor_flows=vap_flow_profile,
+                                                    stage_mw=vap_MW_profile,
+                                                    stage_temp=temp_profile)
+        operating = self._flowsheet.CAL_Annual_OperatingCost(reboiler_duty=column_output[1],
+                                                              condenser_duty=column_output[0])
+
+        total_cost = invest+operating
+
+        return total_cost, diameter
+
     def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         t_reboiler = column_output_specification.temperature_per_stage[-1]
