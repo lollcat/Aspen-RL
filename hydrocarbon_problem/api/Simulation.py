@@ -144,7 +144,7 @@ class Simulation():
 
         for i in range(0, n_stages - 1):
             Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-                R * (stage_temp[i] + 273.15) * stage_mw[i] * 1000 / (P * 1e5)))]
+                R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
 
         Diameter = 1.1 * max(Effective_Diameter)
         return Diameter
