@@ -22,7 +22,7 @@ class PolicyNetwork(Protocol):
 
     def apply(self, policy_params: chex.ArrayTree,
               observation: Union[Observation, NextObservation]) -> Action:
-        # I guess it returns an action based on: line 89 jax/D4PG/learning.py, does dpg_a_t stand for DPG action @ time t?
+        # I guess it returns an action based on: line 89 jax/D4PG/learning.p, does dpg_a_t stand for DPG action @ time t?
         """
             Args:
               policy_params: Parameters of the policy network.
@@ -33,7 +33,7 @@ class PolicyNetwork(Protocol):
     raise NotImplementedError
 
 class CriticNetwork(Protocol):
-    def init(self,):
+    def init(self, seed: chex.PRNGKey, action: Action):
         """Initialises the critic network"""
         raise NotImplementedError
 
@@ -50,6 +50,8 @@ class CriticNetwork(Protocol):
 
             Returns:
                 Q values and Number of atoms in output layer of distributional critic https://github.com/msinto93/D4PG/blob/master/params.py
+                critic outputs a distribution over state-action values; in this particular case this discrete
+                distribution is parametrized as in C51.  https://github.com/deepmind/acme/blob/57493053729b9a3e74a152d7a574fa1ef57121b9/acme/agents/jax/d4pg/README.md
         """
         raise NotImplementedError
 
