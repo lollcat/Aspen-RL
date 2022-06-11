@@ -9,8 +9,12 @@ class DistParams(NamedTuple):
     mean: chex.Array
     log_var: chex.Array
 
-# parameters describing distribution over action in both tops and bottoms
-NextDistParams = Tuple[DistParams, DistParams]
+
+class NextDistParams(NamedTuple):
+    # parameters describing distribution over action in both tops and bottoms
+    params: Tuple[DistParams, DistParams]
+    discounts: Tuple[chex.Array, chex.Array]
+
 NextAction = Tuple[Action, Action]
 
 

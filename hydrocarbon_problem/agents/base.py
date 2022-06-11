@@ -4,10 +4,15 @@ import numpy as np
 
 Action = Tuple[chex.Array, chex.Array]
 
-# next observation contains the tops and bottoms streams
-NextObservation = Tuple[chex.Array, chex.Array]
+
 Params = chex.ArrayTree
 Observation = chex.Array
+
+
+class NextObservation(NamedTuple):
+    # Will wrap environment to provide this as the next observation.
+    observation: Tuple[chex.Array, chex.Array]
+    discounts: Tuple[chex.Array, chex.Array]  # for the top and bottom stream respectively.
 
 class Discount(NamedTuple):
     """Copied from env.types but converted to jax."""

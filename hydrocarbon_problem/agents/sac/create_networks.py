@@ -39,14 +39,13 @@ def create_sac_networks(env: AspenDistillation,
     def q_network_forward(q_params: chex.ArrayTree,
                           observation: Union[Observation, NextObservation],
                           action: Union[Action, NextAction]) -> chex.Array:
-        if isinstance(observation, tuple):
-            assert len(observation) == 2
-            assert len(action) == 2
-            tops_obs, bottoms_obs = observation
+        if isinstance(observation, NextObservation):
+            tops_obs, bottoms_obs = observation.observation
+            tops_discount, bottoms_discount = observation.discounts
             tops_action, bottoms_action = action
             q_top = q_value_network_forward_single.apply(q_params, tops_obs, tops_action)
             q_bottom = q_value_network_forward_single.apply(q_params, bottoms_obs, bottoms_action)
-            q_value = q_top + q_bottom
+            q_value = q_top*tops_discount + q_bottom*bottoms_discount
         else:
             q_value = q_value_network_forward_single.apply(q_params, observation, action)
         return q_value
@@ -68,12 +67,12 @@ def create_sac_networks(env: AspenDistillation,
     def policy_forward(policy_params: chex.ArrayTree,
                        observation: Union[Observation, NextObservation]) -> \
             Union[DistParams, NextDistParams]:
-        if isinstance(observation, tuple):
-            assert len(observation) == 2
-            tops_obs, bottoms_obs = observation
+        if isinstance(observation, NextObservation):
+            tops_obs, bottoms_obs = observation.observation
             dist_params_top = policy_forward_single.apply(policy_params, tops_obs)
             dist_params_bot = policy_forward_single.apply(policy_params, bottoms_obs)
-            dist_params = (dist_params_top, dist_params_bot)
+            dist_params = NextDistParams(params=(dist_params_top, dist_params_bot),
+                                         discounts=observation.discounts)
         else:
             dist_params = policy_forward_single.apply(policy_params, observation)
         return dist_params
@@ -99,14 +98,12 @@ def create_sac_networks(env: AspenDistillation,
 
     def log_prob(dist_params: Union[DistParams, NextDistParams],
                         action: Union[Action, NextAction]) -> chex.Array:
-        if not isinstance(dist_params, DistParams):
-            assert len(action) == 2
-            assert len(dist_params) == 2
-            continuous_action_tops =  action[0][1]
+        if isinstance(dist_params, NextDistParams):
+            continuous_action_tops = action[0][1]
             continuous_action_bots = action[1][1]
-            log_prob_tops = log_prob_single(dist_params[0], continuous_action_tops)
-            log_prob_bots = log_prob_single(dist_params[1], continuous_action_bots)
-            log_prob = log_prob_bots + log_prob_tops
+            log_prob_tops = log_prob_single(dist_params.params[0], continuous_action_tops)
+            log_prob_bots = log_prob_single(dist_params.params[1], continuous_action_bots)
+            log_prob = log_prob_bots*dist_params.discounts[1] + log_prob_tops*dist_params.discounts[0]
         else:
             log_prob = log_prob_single(dist_params, action)
         return log_prob
@@ -123,11 +120,10 @@ def create_sac_networks(env: AspenDistillation,
     # Lastly let's create
     def sample(dist_params: Union[DistParams, NextDistParams],
                  seed: chex.PRNGKey) -> Union[Action, NextAction]:
-        if not isinstance(dist_params, DistParams):
-            assert len(dist_params) == 2
+        if isinstance(dist_params, NextDistParams):
             key1, key2 = jax.random.split(seed)
-            action_tops = sample_single(dist_params[0], key1)
-            action_bots = sample_single(dist_params[1], key2)
+            action_tops = sample_single(dist_params.params[0], key1)
+            action_bots = sample_single(dist_params.params[1], key2)
             action = action_tops, action_bots
         else:
             action = sample_single(dist_params, seed)

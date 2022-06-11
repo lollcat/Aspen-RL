@@ -18,9 +18,14 @@ def create_agent(networks: SACNetworks,
                  q_optimizer: optax.GradientTransformation,
                  ) -> Tuple[SelectAction, AgentUpdate]:
 
-    def select_action(agent_params: chex.ArrayTree,
-                      observation: Observation,
-                 random_key: chex.PRNGKey) -> Action:
+    # TODO: to bake in the next_state discounting, we add this to the next_observation field
+    # so that it can be done internally without effecting the SAC code.
+
+    def select_action(
+            agent_params: chex.ArrayTree,
+            observation: Observation,
+            random_key: chex.PRNGKey
+    ) -> Action:
         """Select an action in the environment based on an observation"""
         policy_params, q_network_params = agent_params
         dist_params = networks.policy_network.apply(policy_params, observation)

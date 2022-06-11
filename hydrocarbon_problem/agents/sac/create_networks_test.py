@@ -29,10 +29,19 @@ def test_policy_net(env: AspenDistillation, network: SACNetworks):
 
     policy_params = network.policy_network.init(seed, obs)
 
-    # Now check for single obs
+    # Now check for single obs.
     dist_params = network.policy_network.apply(policy_params, obs)
     action = network.sample(dist_params, seed)
     log_prob = network.log_prob(dist_params, action)
+
+    # Now for next obs
+    next_obs = obs, obs
+    next_dist_params = network.policy_network.apply(policy_params, next_obs)
+    assert isinstance(next_dist_params, tuple)
+    assert isinstance(next_dist_params[0], chex.ArrayTree)
+    next_action = network.sample(next_dist_params, seed)
+    next_log_prob = network.log_prob(next_dist_params, action)
+
 
 
 
