@@ -17,9 +17,11 @@ def create_agent(networks: SACNetworks,
                  policy_optimizer: optax.GradientTransformation,
                  q_optimizer: optax.GradientTransformation,
                  ) -> Tuple[SelectAction, AgentUpdate]:
+    """
+    To bake in the next_state discounting, we add this to the next_observation field
+    so that it can be done internally without effecting the SAC code.
+    """
 
-    # TODO: to bake in the next_state discounting, we add this to the next_observation field
-    # so that it can be done internally without effecting the SAC code.
 
     def select_action(
             agent_params: chex.ArrayTree,

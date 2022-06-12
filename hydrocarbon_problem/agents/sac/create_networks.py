@@ -50,8 +50,18 @@ def create_sac_networks(env: AspenDistillation,
             q_value = q_value_network_forward_single.apply(q_params, observation, action)
         return q_value
 
-    q_value_network = hk.Transformed(init=q_value_network_forward_single.init,
+    def q_value_net_init(key: chex.PRNGKey) -> chex.ArrayTree:
+        """Initialise the q value network using dummy observations"""
+        obs = env.observation_spec().generate_value()
+        action = env.action_spec()[0].generate_value(), env.action_spec()[1].generate_value()
+
+        critic_params = q_value_network_forward_single.init(key, obs, action)
+        return critic_params
+
+    q_value_network = hk.Transformed(init=q_value_net_init,
                                      apply=q_network_forward)
+
+
 
     # Now let's define the policy.
     @hk.without_apply_rng
@@ -77,7 +87,12 @@ def create_sac_networks(env: AspenDistillation,
             dist_params = policy_forward_single.apply(policy_params, observation)
         return dist_params
 
-    policy_network = hk.Transformed(init=policy_forward_single.init,
+    def policy_init(key: chex.PRNGKey) -> chex.ArrayTree:
+        obs = env.observation_spec().generate_value()
+        policy_params = policy_forward_single.init(key, obs)
+        return policy_params
+
+    policy_network = hk.Transformed(init=policy_init,
                                     apply=policy_forward)
 
 

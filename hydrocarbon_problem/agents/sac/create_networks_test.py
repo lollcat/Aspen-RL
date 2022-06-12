@@ -13,7 +13,7 @@ def test_critic_net(env: AspenDistillation, network: SACNetworks):
     obs = env.observation_spec().generate_value()
     action = env.action_spec()[0].generate_value(), env.action_spec()[1].generate_value()
 
-    critic_params = network.q_network.init(seed, obs, action)
+    critic_params = network.q_network.init(seed)
 
     q_value = network.q_network.apply(critic_params, obs, action)
     chex.assert_shape(q_value, (1,))
@@ -34,12 +34,14 @@ def test_critic_net(env: AspenDistillation, network: SACNetworks):
     chex.assert_shape(q_value, (1,))
     assert next_q_value == 0.0
 
+    print("passed critic tests")
+
 
 def test_policy_net(env: AspenDistillation, network: SACNetworks):
     seed = jax.random.PRNGKey(0)
     obs = env.observation_spec().generate_value()
 
-    policy_params = network.policy_network.init(seed, obs)
+    policy_params = network.policy_network.init(seed)
 
     # Now check for single obs.
     dist_params = network.policy_network.apply(policy_params, obs)
@@ -68,6 +70,7 @@ def test_policy_net(env: AspenDistillation, network: SACNetworks):
     next_log_prob = network.log_prob(next_dist_params, next_action)
     assert next_log_prob == 0.0  # 0 discounting
 
+    print("passed policy tests")
 
 
 

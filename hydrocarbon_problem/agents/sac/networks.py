@@ -19,8 +19,8 @@ NextAction = Tuple[Action, Action]
 
 
 class PolicyNetwork(Protocol):
-    def init(self, seed: chex.PRNGKey, observation: Observation) -> chex.ArrayTree:
-        """Initialises the policy network, assuming haiku network definition."""
+    def init(self, seed) -> chex.ArrayTree:
+        """Initialises the policy network."""
         raise NotImplementedError
 
     def apply(self, policy_params: chex.ArrayTree,
@@ -36,9 +36,11 @@ class PolicyNetwork(Protocol):
         """
         raise NotImplementedError
 
+
 class QNetwork(Protocol):
-    def init(self, observation: Observation, action: Action) -> chex.ArrayTree:
-        """Initialisae the parameters of the Q-value network"""
+    def init(self, seed) -> chex.ArrayTree:
+        """Initialises the value network."""
+        raise NotImplementedError
 
 
     def apply(self, q_params: chex.ArrayTree, observation: Union[Observation, NextObservation],
