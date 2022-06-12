@@ -83,7 +83,7 @@ def create_sac_networks(env: AspenDistillation,
 
 
     def get_dist(dist_params: DistParams) -> tfp.distributions.Distribution:
-        scale_diag = jnp.diag(jnp.exp(dist_params.log_var))
+        scale_diag = jnp.exp(dist_params.log_var)
         dist = tfp.distributions.MultivariateNormalDiag(loc=dist_params.mean,
                                                         scale_diag=scale_diag)
         return dist
@@ -99,11 +99,12 @@ def create_sac_networks(env: AspenDistillation,
     def log_prob(dist_params: Union[DistParams, NextDistParams],
                         action: Union[Action, NextAction]) -> chex.Array:
         if isinstance(dist_params, NextDistParams):
-            continuous_action_tops = action[0][1]
-            continuous_action_bots = action[1][1]
-            log_prob_tops = log_prob_single(dist_params.params[0], continuous_action_tops)
-            log_prob_bots = log_prob_single(dist_params.params[1], continuous_action_bots)
-            log_prob = log_prob_bots*dist_params.discounts[1] + log_prob_tops*dist_params.discounts[0]
+            action_tops = action[0]
+            action_bots = action[1]
+            log_prob_tops = log_prob_single(dist_params.params[0], action_tops)
+            log_prob_bots = log_prob_single(dist_params.params[1], action_bots)
+            log_prob = log_prob_bots*dist_params.discounts[1] + \
+                       log_prob_tops*dist_params.discounts[0]
         else:
             log_prob = log_prob_single(dist_params, action)
         return log_prob
