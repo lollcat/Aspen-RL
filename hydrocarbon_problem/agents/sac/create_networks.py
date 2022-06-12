@@ -98,13 +98,13 @@ def create_sac_networks(env: AspenDistillation,
 
 
     def get_dist(dist_params: DistParams) -> tfp.distributions.Distribution:
-        scale_diag = jnp.exp(dist_params.log_var)
+        scale_diag = jax.nn.softplus(dist_params.log_var)
         dist = tfp.distributions.MultivariateNormalDiag(loc=dist_params.mean,
                                                         scale_diag=scale_diag)
         return dist
 
 
-    # Now let's create the log prob function
+    # Now let's create the log prob function jax.nn.softplus(dist_params.log_var)
     def log_prob_single(dist_params: DistParams, action: Action) -> chex.Array:
         dist = get_dist(dist_params)
         continuos_action = action[1]
