@@ -6,13 +6,14 @@ import jax.numpy as jnp
 import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from functools import partial
 
 
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.buffer import ReplayBuffer
 from hydrocarbon_problem.agents.sac.create_networks import create_sac_networks
-from hydrocarbon_problem.env.env import AspenDistillation
+from hydrocarbon_problem.env.env import AspenDistillation, ProductSpecification
 from hydrocarbon_problem.agents.base import NextObservation, Transition
 from hydrocarbon_problem.agents.logger import ListLogger, plot_history
 
@@ -28,7 +29,9 @@ def train(n_iterations: int,
           ):
     # initialise the buffer state (filling it with random experience)
     key, subkey = jax.random.split(key)
-    buffer_state = buffer.init(subkey, env)
+    buffer_select_action = partial(agent.select_action, agent.state)
+    buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
+
 
     logger = ListLogger()
 
@@ -84,7 +87,7 @@ def train(n_iterations: int,
             # update the agent using the sampled batch
             agent_state, info = agent.update(agent.state, batch)
             # chex.assert_tree_all_finite(agent_state)
-            agent._replace(state=agent_state)
+            agent = agent._replace(state=agent_state)
             logger.write(info)
 
         logger.write({"agent_step_time": time.time() - sac_start_time})
@@ -95,8 +98,9 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
     DISABLE_JIT = False  # useful for debugging
-    from jax.config import config
-    config.update('jax_disable_jit', DISABLE_JIT)
+    if DISABLE_JIT:
+        from jax.config import config
+        config.update('jax_disable_jit', DISABLE_JIT)
     SUPRESS_WARNINGS = True
     if SUPRESS_WARNINGS:
         # If we don't want to print warnings.
@@ -112,13 +116,15 @@ if __name__ == '__main__':
     batch_size = 12
     n_sac_updates_per_episode = 1
 
-    env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
+    env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),
+                            product_spec=ProductSpecification(purity=0.5),
+                            )
     sac_net = create_sac_networks(env=env,
                         policy_hidden_units = (3,), q_value_hidden_units = (10, 10))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),
-                         policy_optimizer=optax.adam(1e-3),
+                         policy_optimizer=optax.adam(1e-4),
                          q_optimizer=optax.adam(1e-3)
                          )
 

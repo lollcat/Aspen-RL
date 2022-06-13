@@ -5,13 +5,12 @@ from hydrocarbon_problem.env.env import AspenDistillation
 
 if __name__ == '__main__':
     # to check that the replay buffer runs
-    dim = 5
     batch_size = 3
     n_batches_total_length = 2
     length = n_batches_total_length * batch_size
     min_sample_length = int(length * 0.5)
     rng_key = jax.random.PRNGKey(0)
-    buffer = ReplayBuffer(dim, length, min_sample_length)
+    buffer = ReplayBuffer(length, min_sample_length)
 
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
     buffer_state = buffer.init(rng_key, env)

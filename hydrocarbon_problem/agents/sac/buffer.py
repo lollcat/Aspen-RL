@@ -37,13 +37,24 @@ class ReplayBuffer:
         self.max_length = max_length
         self.min_sample_length = min_sample_length
 
-    def init(self, key: chex.PRNGKey, env: AspenDistillation) -> BufferState:
+    def init(self, key: chex.PRNGKey, env: AspenDistillation,
+             select_action: Callable[[Observation, chex.PRNGKey], Action] = None) -> BufferState:
         """
         key: source of randomness
         initial_sampler: sampler producing x and log_w, used to fill the buffer up to
             the min sample length. The initialised flow + AIS may be used here,
             or we may desire to use AIS with more distributions to give the flow a "good start".
         """
+        if select_action is None:
+            def select_action(obs, key):
+                discrete_action = jnp.array(1) # always choose to separater
+                continuous_action = jax.random.uniform(key=subkey,
+                                                       shape=continuous_spec.shape,
+                                                       minval=continuous_spec.minimum,
+                                                       maxval=continuous_spec.maximum)
+                action = np.asarray(discrete_action), np.asarray(continuous_action)
+                return action
+
         current_index = 0
         is_full = False  # whether the buffer is full
         can_sample = False  # whether the buffer is full enough to begin sampling
@@ -62,12 +73,7 @@ class ReplayBuffer:
             while not timestep.last():
                 # fill buffer up minimum length
                 key, subkey = jax.random.split(key)
-                discrete_action = jnp.array(1) # always choose to separater
-                continuous_action = jax.random.uniform(key=subkey,
-                                                       shape=continuous_spec.shape,
-                                                       minval=continuous_spec.minimum,
-                                                       maxval=continuous_spec.maximum)
-                action = np.asarray(discrete_action), np.asarray(continuous_action)
+                action = select_action(timestep.observation.upcoming_state, subkey)
                 timestep = env.step(action)
                 next_obs = NextObservation(observation=(timestep.observation.created_states),
                                            discounts=timestep.discount.created_states)

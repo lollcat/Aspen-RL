@@ -1,5 +1,6 @@
 from typing import Tuple
 
+import numpy as np
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.api.types_ import StreamSpecification, PerCompoundProperty, \
     ColumnOutputSpecification, ColumnInputSpecification, ProductSpecification
@@ -17,15 +18,15 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
 
     def get_output_stream_specifications(self) -> Tuple[StreamSpecification,
                                                         StreamSpecification]:
-        fake_stream = StreamSpecification(temperature=50.8,
-                                          pressure=80.2,
+        fake_stream = StreamSpecification(temperature=50.8 + np.random.random(),
+                                          pressure=80.2 + np.random.random(),
                                           molar_flows=PerCompoundProperty(
-                                              ethane=2.1,
-                                              propane=1.1,
-                                              isobutane=0.1,
-                                              n_butane=0.5,
-                                              isopentane=0.25,
-                                              n_pentane=5.3
+                                              ethane=np.abs(np.random.random()),
+                                              propane=np.abs(np.random.random()),
+                                              isobutane=np.abs(np.random.random()),
+                                              n_butane=np.abs(np.random.random()),
+                                              isopentane=np.abs(np.random.random()),
+                                              n_pentane=np.abs(np.random.random())
                                           ))
         return fake_stream, fake_stream
 
@@ -46,13 +47,13 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def get_column_cost(self, stream_specification: StreamSpecification,
                         column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
-        return 100.0
+        return 100.0 + np.abs(np.random.random())
 
     def get_stream_value(self, stream_specification: StreamSpecification,
                          product_specification: ProductSpecification) -> float:
         is_product, is_outlet = self.stream_is_product_or_outlet(stream_specification, product_specification)
         if is_product:
-            return 10.0
+            return 10.0 + np.abs(np.random.random())
         else:
             return 0.0
 
