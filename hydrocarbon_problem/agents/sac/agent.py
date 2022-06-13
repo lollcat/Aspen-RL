@@ -7,7 +7,7 @@ import numpy as np
 import optax
 import chex
 from hydrocarbon_problem.agents.sac.networks import SACNetworks
-from acme.agents.jax.sac.learning import TrainingState, SACLearner
+from hydrocarbon_problem.agents.sac.learning import TrainingState, SACLearner
 
 
 class Agent(NamedTuple):

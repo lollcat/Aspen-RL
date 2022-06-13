@@ -79,11 +79,11 @@ def train(n_iterations: int,
             # sample a batch from the replay buffer
             key, subkey = jax.random.split(key)
             batch = buffer.sample(buffer_state, subkey, batch_size)
-            chex.assert_tree_all_finite(batch)
+            # chex.assert_tree_all_finite(batch)
 
             # update the agent using the sampled batch
             agent_state, info = agent.update(agent.state, batch)
-            chex.assert_tree_all_finite(agent_state)
+            # chex.assert_tree_all_finite(agent_state)
             agent._replace(state=agent_state)
             logger.write(info)
 
@@ -94,7 +94,7 @@ def train(n_iterations: int,
 
 
 if __name__ == '__main__':
-    DISABLE_JIT = True # useful for debugging
+    DISABLE_JIT = False  # useful for debugging
     from jax.config import config
     config.update('jax_disable_jit', DISABLE_JIT)
     SUPRESS_WARNINGS = True
@@ -108,9 +108,9 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 100
-    batch_size = 32
-    n_sac_updates_per_episode = 3
+    n_iterations = 20
+    batch_size = 12
+    n_sac_updates_per_episode = 1
 
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
     sac_net = create_sac_networks(env=env,
