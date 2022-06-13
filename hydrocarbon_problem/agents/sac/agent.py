@@ -13,7 +13,7 @@ from acme.agents.jax.sac.learning import TrainingState, SACLearner
 class Agent(NamedTuple):
     select_action: SelectAction
     update: AgentUpdate
-    params: TrainingState
+    state: TrainingState
 
 
 def create_agent(networks: SACNetworks,
@@ -35,7 +35,8 @@ def create_agent(networks: SACNetworks,
             random_key: chex.PRNGKey
     ) -> Action:
         """Select an action in the environment based on an observation"""
-        # @jax.jit
+
+        @jax.jit
         def _select_action(agent_params: TrainingState, observation: Observation,
                            random_key: chex.PRNGKey):
             """Select action with jit"""
@@ -55,11 +56,11 @@ def create_agent(networks: SACNetworks,
                         q_optimizer=q_optimizer,
                         )
 
-    # @jax.jit
+    @jax.jit
     def update_agent(agent_state: TrainingState, batch: Transition) -> Tuple[TrainingState, Dict]:
         """
         Args:
-            agent_state: Current state of the agent (params, optimizer params etc).
+            agent_state: Current state of the agent (state, optimizer state etc).
             batch: Batch of experience generated through interaction with the environment.
 
         Returns:
@@ -72,7 +73,7 @@ def create_agent(networks: SACNetworks,
 
 
     agent = Agent(select_action=select_action, update=update_agent,
-                  params=leaner._state)
+                  state=leaner._state)
 
     return agent
 

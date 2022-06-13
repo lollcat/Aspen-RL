@@ -152,7 +152,6 @@ class AspenDistillation(dm_env.Environment):
                 created_states=(self._blank_state, self._blank_state),
                 upcoming_state=upcoming_stream_obs)
             done = Done((True, True), done_overall)
-        print(f"Done = {done}")
         discount = Discount((np.array(1 - done.created_states[0]),
                              np.array(1 - done.created_states[1])),
                         np.array(1-done.overall))

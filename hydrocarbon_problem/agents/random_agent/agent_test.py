@@ -1,6 +1,6 @@
 import chex
 
-from hydrocarbon_problem.agents.random_agent import create_random_agent, RandomAgentState
+from hydrocarbon_problem.agents.random_agent.random_agent import create_random_agent, RandomAgentState
 from hydrocarbon_problem.env.env import AspenDistillation
 from hydrocarbon_problem.env.types_ import Discount
 from hydrocarbon_problem.agents.base import SelectAction, AgentUpdate, Transition

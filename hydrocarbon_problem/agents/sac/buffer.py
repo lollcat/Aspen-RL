@@ -19,14 +19,12 @@ class BufferState(NamedTuple):
 
 class ReplayBuffer:
     def __init__(self,
-                 dim: int,
                  max_length: int,
                  min_sample_length: int,
                  ):
         """
         Create replay buffer for batched sampling and adding of data.
         Args:
-            dim: dimension of x data
             max_length: maximum length of the buffer
             min_sample_length: minimum length of buffer required for sampling
 
@@ -36,7 +34,6 @@ class ReplayBuffer:
         on it many times during the start of training.
         """
         assert min_sample_length < max_length
-        self.dim = dim
         self.max_length = max_length
         self.min_sample_length = min_sample_length
 
@@ -84,6 +81,7 @@ class ReplayBuffer:
                 )
                 transition = jax.tree_map(jnp.asarray, transition)
                 buffer_state = self.add(transition, buffer_state)
+                previous_timestep = timestep
         return buffer_state
 
     @partial(jax.jit, static_argnums=0)

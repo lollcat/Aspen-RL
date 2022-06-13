@@ -34,7 +34,7 @@ def test_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
     timestep = env.reset()
     while not timestep.last():
         key, subkey = jax.random.split(key)
-        action = agent.select_action(agent.params, timestep.observation.upcoming_state, subkey)
+        action = agent.select_action(agent.state, timestep.observation.upcoming_state, subkey)
         chex.assert_tree_all_finite(action)
         timestep = env.step(action)
         print(f"took action {action}")
@@ -44,7 +44,7 @@ def test_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
 
 def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
     batch = create_fake_batch(env)
-    agent_state, info = agent.update(agent.params, batch)
+    agent_state, info = agent.update(agent.state, batch)
     print("passed agent update test")
 
 
