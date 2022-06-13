@@ -11,6 +11,21 @@ from hydrocarbon_problem.agents.base import NextObservation, Transition
 from hydrocarbon_problem.agents.sac.networks import SACNetworks
 
 
+def create_fake_batch(env: AspenDistillation, batch_size: int = 10) -> Transition:
+    obs = env.observation_spec().generate_value()
+    next_obs = NextObservation(observation=(obs, obs), discounts=(np.array(1.0), np.array(1.0)))
+    transition = Transition(
+        observation=obs,
+        action=(env.action_spec()[0].generate_value(), env.action_spec()[1].generate_value()),
+        reward = env.reward_spec().generate_value(),
+        discount=env.discount_spec().overall.generate_value(),
+        next_observation=next_obs
+    )
+    batch = jax.tree_map(
+        lambda x: jnp.broadcast_to(x, shape=(batch_size, *x.shape)), transition
+    )
+    return batch
+
 
 def test_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
     # test action selection
@@ -28,20 +43,7 @@ def test_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
 
 
 def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
-    obs = env.observation_spec().generate_value()
-    next_obs = NextObservation(observation=(obs, obs), discounts=(np.array([1.0]), np.array([1.0])))
-    batch_size = 10
-    transition = Transition(
-        observation=obs,
-        action=(env.action_spec()[0].generate_value(), env.action_spec()[1].generate_value()),
-        reward = env.reward_spec().generate_value(),
-        discount=env.discount_spec().overall.generate_value(),
-        next_observation=next_obs
-    )
-    batch = jax.tree_map(
-        lambda x: jnp.broadcast_to(x, shape=(batch_size, *x.shape)), transition
-    )
-
+    batch = create_fake_batch(env)
     agent_state, info = agent.update(agent.params, batch)
     print("passed agent update test")
 
