@@ -12,7 +12,7 @@ from hydrocarbon_problem.agents.sac.networks import SACNetworks
 
 
 
-def tesst_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
+def test_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
     # test action selection
     key = jax.random.PRNGKey(0)
 
@@ -27,7 +27,7 @@ def tesst_agent_select_action(agent: Agent, env: AspenDistillation) -> None:
     print("passed agent select action test")
 
 
-def tesst_agent_update(agent: Agent, env: AspenDistillation) -> None:
+def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
     obs = env.observation_spec().generate_value()
     next_obs = NextObservation(observation=(obs, obs), discounts=(np.array([1.0]), np.array([1.0])))
     batch_size = 10
@@ -59,5 +59,5 @@ if __name__ == '__main__':
                          q_optimizer=optax.adam(1e-3)
                          )
 
-    tesst_agent_select_action(agent, env)
-    tesst_agent_update(agent, env)
+    test_agent_select_action(agent, env)
+    test_agent_update(agent, env)
