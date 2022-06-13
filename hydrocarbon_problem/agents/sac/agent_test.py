@@ -21,7 +21,7 @@ def create_fake_batch(env: AspenDistillation, batch_size: int = 10) -> Transitio
         observation=obs,
         action=(env.action_spec()[0].generate_value(), env.action_spec()[1].generate_value()),
         reward = env.reward_spec().generate_value(),
-        discount=env.discount_spec().overall.generate_value(),
+        discount=np.array(1.0),
         next_observation=next_obs
     )
     batch = jax.tree_map(

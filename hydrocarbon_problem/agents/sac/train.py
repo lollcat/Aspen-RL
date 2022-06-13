@@ -1,4 +1,3 @@
-import chex
 import jax
 import numpy as np
 import optax
@@ -120,7 +119,7 @@ if __name__ == '__main__':
                             product_spec=ProductSpecification(purity=0.5),
                             )
     sac_net = create_sac_networks(env=env,
-                        policy_hidden_units = (3,), q_value_hidden_units = (10, 10))
+                        policy_hidden_units = (10, 10), q_value_hidden_units = (10, 10))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),
