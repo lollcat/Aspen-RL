@@ -20,7 +20,7 @@ from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
 
 import acme
 from acme import types
-from acme.agents.jax.sac import networks as sac_networks
+from hydrocarbon_problem.agents.sac.networks import SACNetworks
 from acme.jax import networks as networks_lib
 from acme.jax import utils
 from acme.utils import counting
@@ -49,7 +49,7 @@ class SACLearner(acme.Learner):
 
   def __init__(
       self,
-      networks: sac_networks.SACNetworks,
+      networks: SACNetworks,
       rng: jnp.ndarray,
       iterator: None,
       policy_optimizer: optax.GradientTransformation,
