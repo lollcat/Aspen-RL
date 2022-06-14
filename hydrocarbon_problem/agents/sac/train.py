@@ -115,6 +115,7 @@ if __name__ == '__main__':
     batch_size = 12
     n_sac_updates_per_episode = 1
 
+    # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),
                             product_spec=ProductSpecification(purity=0.5),
                             )
