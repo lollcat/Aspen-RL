@@ -25,9 +25,9 @@ def create_agent(networks: SACNetworks,
     To bake in the next_state discounting, we add this to the next_observation field
     so that it can be done internally without effecting the SAC code.
 
-    We have to comment out the processing of next_observation in Acme's SAC agent.
+    We have to comment out the processing of next_observation in Acme's SAC agent, thus we
+    redefine `learning.py` in this module.
     """
-
 
     def select_action(
             agent_params: TrainingState,

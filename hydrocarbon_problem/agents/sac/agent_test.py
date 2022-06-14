@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.create_networks import create_sac_networks
 from hydrocarbon_problem.env.env import AspenDistillation
@@ -55,7 +56,7 @@ def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
 def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
     batch = create_fake_batch(env)
     logger = ListLogger()
-    for i in tqdm(range(100)):
+    for i in tqdm(range(1000)):
         agent_state, info = agent.update(agent.state, batch)
         agent = agent._replace(state=agent_state)
         chex.assert_tree_all_finite(agent_state)
