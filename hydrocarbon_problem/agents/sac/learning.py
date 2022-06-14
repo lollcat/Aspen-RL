@@ -28,7 +28,6 @@ from acme.utils import loggers
 import jax
 import jax.numpy as jnp
 import optax
-import reverb
 
 
 class TrainingState(NamedTuple):
@@ -52,7 +51,7 @@ class SACLearner(acme.Learner):
       self,
       networks: sac_networks.SACNetworks,
       rng: jnp.ndarray,
-      iterator: Iterator[reverb.ReplaySample],
+      iterator: None,
       policy_optimizer: optax.GradientTransformation,
       q_optimizer: optax.GradientTransformation,
       tau: float = 0.005,
