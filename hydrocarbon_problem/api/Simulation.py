@@ -274,12 +274,27 @@ class Simulation():
             'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
         }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
 
+        # for entry in component_specifications:
+        #     component_specifications[entry]['mass flow'] = stream_specification[
+        #                                                         component_specifications[entry]['index']] * \
+        #                                                     component_specifications[entry][
+        #                                                            'molar weight'] / 1000 * up_time  # ton/year
+        #
+        # total_mass_flow = sum(d['mass flow'] for d in component_specifications.values() if d)
+        # index = [i for i, x in enumerate(is_purity) if x]
+        # index = index[0]
+        # for entry in component_specifications:
+        #     if component_specifications[entry]['index'] == index:
+        #         stream_value = component_specifications[entry]['price'] * total_mass_flow / 1000000  # M€/year
+        #     else:
+        #         pass
+
         for entry in component_specifications:
+            component_specifications[entry]['mass flow'] = stream_specification[
+                                                                    component_specifications[entry]['index']] * \
+                                                                component_specifications[entry][
+                                                                       'molar weight'] / 1000 * up_time  # ton/year
             if sum(is_purity) > 0:
-                component_specifications[entry]['mass flow'] = stream_specification[
-                                                                   component_specifications[entry]['index']] * \
-                                                               component_specifications[entry][
-                                                                   'molar weight'] / 1000 * up_time  # ton/year
                 component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] \
                                                                   * component_specifications[entry]['price'] * \
                                                                   component_specifications[entry][
@@ -289,7 +304,7 @@ class Simulation():
 
         total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
 
-        return total_stream_value
+        return total_stream_value  # stream_value
 
     def CAL_stream_value(self, stream_specification,
                          product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
