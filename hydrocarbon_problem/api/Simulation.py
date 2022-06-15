@@ -123,23 +123,13 @@ class Simulation():
         while tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            # while self.AspenSimulation.Engine.IsRunning: # and total_timer > 0:
-            # # #     timer = datetime.timedelta(seconds=total_timer)
-            # #     # print(timer)
-            #      time.sleep(1)
-            #      self.AspenSimulation.Engine.Stop()
-            # #     break
-            # #     # total_timer -= 1
             self.duration = time.time() - start
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
             print(f"Convergence: {self.converged}")
             if self.converged == 0 or self.converged == 2:
-                run_converged = True
                 break
             else:
-                run_converged = False
-                # self.AspenSimulation.Reinit()
                 time.sleep(1)
                 tries += 1
 
@@ -151,7 +141,7 @@ class Simulation():
 
         for i in range(0, n_stages - 1):
             Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-                R * (stage_temp[i] + 273.15) * stage_mw[i] * 1000 / (P * 1e5)))]
+                R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
 
         Diameter = 1.1 * max(Effective_Diameter)
         return Diameter

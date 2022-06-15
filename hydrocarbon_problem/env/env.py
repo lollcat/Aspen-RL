@@ -105,8 +105,6 @@ class AspenDistillation(dm_env.Environment):
         """The step function of the environment, which takes in an action and returns a
         dm_env.TimeStep object which contains the step_type, reward, discount and observation."""
         self._steps += 1
-        duration = "no separation"
-        run_converged = "no separation"
         feed_stream = self._stream_table[self._current_stream_number]
         choose_separate, column_input_spec = self._action_to_column_spec(action)
 
