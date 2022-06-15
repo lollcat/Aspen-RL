@@ -7,38 +7,35 @@ import time
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
-    def __init__(self, VISIBILITY, max_iterations: int = 100,
-                 flowsheet_path: str = "HydrocarbonMixture.bkp"):
+    def __init__(self, VISIBILITY, max_iterations: int = 100):
         print(os.getcwd())
         os.chdir('../AspenSimulation')
         print(os.getcwd())
-        self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
+        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = True
         self.max_iterations = max_iterations
-        # total_timer = 5
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        self.duration = 0
+        self.converged = False
+        self.tries = 0
+
 
     @property
     def BLK(self):
         return self.AspenSimulation.Tree.Elements("Data").Elements("Blocks")
 
-
     def BLK_NumberOfStages(self, nstages):
         self.BLK.Elements("B1").Elements("Input").Elements("NSTAGE").Value = nstages
-
 
     def BLK_FeedLocation(self, Feed_Location, Feed_Name):
         self.BLK.Elements("B1").Elements("Input").Elements("FEED_STAGE").Elements(Feed_Name).Value = Feed_Location
 
-
     def BLK_Pressure(self, Pressure):
         self.BLK.Elements("B1").Elements("Input").Elements("PRES1").Value = Pressure
 
-
     def BLK_RefluxRatio(self, RfxR):
         self.BLK.Elements("B1").Elements("Input").Elements("BASIS_RR").Value = RfxR
-
 
     def BLK_ReboilerRatio(self, RblR):
         self.BLK.Elements("B1").Elements("Input").Elements("BASIS_BR").Value = RblR
@@ -114,42 +111,28 @@ class Simulation():
 
     def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
         V = []
-        for i in range(1, N_stages + 1):
-            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
+        try:
+            for i in range(1, N_stages + 1):
+                V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
+        except AttributeError:
+            breakpoint()
         return V
 
-
     def Run(self):
-        duration = 0.0
-        run_converged = False
-        tries = 0
-        while tries != 2:
+        self.tries = 0
+        while self.tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
-            # while self.AspenSimulation.Engine.IsRunning: # and total_timer > 0:
-            # # #     timer = datetime.timedelta(seconds=total_timer)
-            # #     # print(timer)
-            #      time.sleep(1)
-            #      self.AspenSimulation.Engine.Stop()
-            # #     break
-            # #     # total_timer -= 1
-            duration = time.time() - start
-
-            print(f"Run = {duration}")
-            converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
+            self.duration = time.time() - start
+            print(f"Run = {self.duration}")
+            self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {converged}")
-            if converged == 0 or converged == 2:
-                run_converged = True
+            print(f"Convergence: {self.converged}")
+            if self.converged == 0 or self.converged == 2:
                 break
             else:
-                run_converged = False
-                # self.AspenSimulation.Reinit()
                 time.sleep(1)
-                tries += 1
-
-        return duration, run_converged
-
+                self.tries += 1
 
     def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
         P = pressure
