@@ -1,3 +1,5 @@
+
+import os
 import pprint
 
 import pandas as pd
@@ -5,105 +7,261 @@ import math
 from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api import Simulation
 
+Total_costs = []
+topvalue = []
+botsvalue = []
+Diameter = []
+A_cnd = []
+A_rbl = []
+cost_column = []
+cost_internals = []
+cost_condenser = []
+cost_reboiler = []
+Operating_cost = []
 
-column_number = [1, 2, 3, 4]
-path = r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\BaseCase.xlsx"
-Cost = []
-StreamSpec = 8
-ColumnInput = 5
-distil = AspenAPI()
-stream = Simulation.Simulation(VISIBILITY=False)
-TotalCosts = {
-    "Column 1": {'Number': 1,
-                 'Costs': 0,
-                 'Topvalue': 0,
-                 'Bottomvalue':0},
-    "Column 2": {'Number': 2,
-                 'Costs': 0,
-                 'Topvalue':0,
-                 'Bottomvalue': 0},
-    "Column 3": {'Number': 3,
-                 'Costs': 0,
-                 'Topvalue': 0,
-                 'Bottomvalue':0},
-    "Column 4": {'Number': 4,
-                 'Costs': 0,
-                 'Topvalue': 0,
-                 'Bottomvalue':0}
-}
-
-for i in column_number:
-    data = pd.read_excel(path, sheet_name="Linear RADFRAC Column "+str(i))
-
-    stream_spec = round(data.StreamSpecification, 2)
-    stream_spec = stream_spec.values.tolist()
-    stream_spec = [x for x in stream_spec if math.isnan(x) == False]
-
-    column_input = round(data.ColumnInputSpecification, 2)
-    column_input = column_input.values.tolist()
-    column_input = [x for x in column_input if math.isnan(x) == False]
-
-    column_output = round(data.ColumnOutputSpecification, 2)
-    column_output = column_output.values.tolist()
-    column_output = [x for x in column_output if math.isnan(x) == False]
-
-    temp_profile = round(data.TemperatureDegree, 2)
-    temp_profile = temp_profile.values.tolist()
-    temp_profile = [x for x in temp_profile if math.isnan(x) == False]
-
-    vap_flow_profile = round(data.Vapourflow, 2)
-    vap_flow_profile = vap_flow_profile.values.tolist()
-    vap_flow_profile = [x for x in vap_flow_profile if math.isnan(x) == False]
+def filter(enter_data):
+    enter_data = enter_data.values.tolist()
+    enter_data = [x for x in enter_data if math.isnan(x) == False]
+    return enter_data
 
 
-    vap_MW_profile = round(data.VapourMW, 2)
-    vap_MW_profile = vap_MW_profile.values.tolist()
-    vap_MW_profile = [x for x in vap_MW_profile if math.isnan(x) == False]
+dataset = 1  # 0=excel, 1 = luyben
 
-    top_stream = round(data.TopStream, 2)
-    top_stream = top_stream.values.tolist()
-    top_stream = [x for x in top_stream if math.isnan(x) == False]
+if dataset == 0:
+    column_number = [1, 2, 3, 4]
+    sep = [0, 1]  # 0 = linear, 1 = tree
+    # ok = ['Linear', 'Tree']
 
-    bot_stream = round(data.BotStream, 2)
-    bot_stream = bot_stream.values.tolist()
-    bot_stream = [x for x in bot_stream if math.isnan(x) == False]
+    path_high = [r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Linear\Linear BaseCase - HighFlow.xlsx",
+            r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - HighFlow.xlsx"]
+    path_low = [
+    [r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Linear\Linear BaseCase - LowFlow.xlsx",
+     r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - LowFlow.xlsx"]
+    ]
+    Cost = []
+    StreamSpec = 8
+    ColumnInput = 5
+    distil = AspenAPI()
+    stream = Simulation.Simulation(VISIBILITY=False)
 
-    top_product_specification = round(data.TopPurity, 2)
-    top_product_specification = top_product_specification.values.tolist()
-    top_product_specification = [x for x in top_product_specification if math.isnan(x) == False]
+    for j in sep:
 
-    bot_product_specification = round(data.BotPurity, 2)
-    bot_product_specification = bot_product_specification.values.tolist()
-    bot_product_specification = [x for x in bot_product_specification if math.isnan(x) == False]
+        Number = [1, 2, 3, 4]
+        Total_costs.clear()
+        topvalue.clear()
+        botsvalue.clear()
+        Diameter.clear()
+        A_cnd.clear()
+        A_rbl.clear()
+        cost_column.clear()
+        cost_internals.clear()
+        cost_condenser.clear()
+        cost_reboiler.clear()
+        Operating_cost.clear()
 
-    TAC = distil.EXCEL_get_column_cost(stream_spec=stream_spec[-1],
-                                       column_output=column_output,
-                                       temp_profile=temp_profile,
-                                       vap_flow_profile=vap_flow_profile,
-                                       vap_MW_profile=vap_MW_profile)
+        for i in Number:
+            print(j,i)
+            data = pd.read_excel(path_high[j], sheet_name="RADFRAC Column "+str(i)+" DifP")
+            stream_spec = filter(round(data.StreamSpecification, 2))
+            column_input = filter(round(data.ColumnInputSpecification, 2))
+            column_output = filter(round(data.ColumnOutputSpecification, 2))
+            temp_profile = filter(round(data.TemperatureDegree, 2))
+            vap_flow_profile = filter(round(data.Vapourflow, 2))
+            vap_MW_profile = filter(round(data.VapourMW, 2))
+            top_stream = filter(round(data.TopStream, 2))
+            bot_stream = filter(round(data.BotStream, 2))
+            top_product_specification = filter(round(data.TopPurity, 2))
+            bot_product_specification = filter(round(data.BotPurity, 2))
 
-    top_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=top_stream,
-                                                   product_specification=top_product_specification)
-    bottom_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=bot_stream,
-                                                              product_specification=bot_product_specification)
+            TAC, D, a_cnd, a_rbl, c_col, c_int, c_cnd, c_rbl, operating = distil.EXCEL_get_column_cost(
+                stream_spec=stream_spec[-1],
+                column_output=column_output,
+                temp_profile=temp_profile,
+                vap_flow_profile=vap_flow_profile,
+                vap_MW_profile=vap_MW_profile
+            )
 
-    TotalCosts[str('Column '+str(i))]['Costs']=-TAC
-    TotalCosts[str('Column '+str(i))]['Topvalue']=top_stream_revenue
-    TotalCosts[str('Column '+str(i))]['Bottomvalue'] = bottom_stream_revenue
+            top_stream_revenue = stream.Excel_CAL_stream_value(
+                stream_specification=top_stream,
+                product_specification=top_product_specification
+            )
 
-pprint.pprint(TotalCosts,sort_dicts=False)
-total_TAC = sum(d['Costs'] for d in TotalCosts.values() if d)
-total_top = sum(d['Topvalue'] for d in TotalCosts.values() if d)
-total_bottom = sum(d['Bottomvalue'] for d in TotalCosts.values() if d)
+            bottom_stream_revenue = stream.Excel_CAL_stream_value(
+                stream_specification=bot_stream,
+                product_specification=bot_product_specification
+            )
 
-print(f"Total TAC: {total_TAC}")
-print(f"Total top: {total_top}")
-print(f"Total bottom: {total_bottom}")
+            Total_costs.append(TAC)
+            topvalue.append(top_stream_revenue)
+            botsvalue.append(bottom_stream_revenue)
+            Diameter.append(D)
+            A_cnd.append(a_cnd)
+            A_rbl.append(a_rbl)
+            cost_column.append(c_col)
+            cost_internals.append(c_int)
+            cost_condenser.append(c_cnd)
+            cost_reboiler.append(c_rbl)
+            Operating_cost.append(operating)
 
-yearly_revenue = total_TAC + total_top + total_bottom
-print(f"Yearly revenue: {yearly_revenue}")
+            if j==0 and i==4:
+                df_linear = pd.DataFrame({
+                    "Number": Number,
+                    "Costs M€": Total_costs,
+                    'Topvalue M€': topvalue,
+                    'Bottomvalue M€': botsvalue,
+                    'Diameter m': Diameter,
+                    'A cnd m2': A_cnd,
+                    'A rbl m2': A_rbl,
+                    'Cost column M€': cost_column,
+                    'Cost internals M€': cost_internals,
+                    'Cost condenser M€': cost_condenser,
+                    'Cost reboiler M€': cost_reboiler,
+                    'Operating cost M€': operating,
+                })
+
+
+            elif j == 1 and i == 4:
+                df_tree = pd.DataFrame({
+                    "Number": Number,
+                    "Costs M€": Total_costs,
+                    'Topvalue M€': topvalue,
+                    'Bottomvalue M€': botsvalue,
+                    'Diameter m': Diameter,
+                    'A cnd m2': A_cnd,
+                    'A rbl m2': A_rbl,
+                    'Cost column M€': cost_column,
+                    'Cost internals M€': cost_internals,
+                    'Cost condenser M€': cost_condenser,
+                    'Cost reboiler M€': cost_reboiler,
+                    'Operating cost M€': operating,
+                })
 
 
 
 
+#             TotalCosts[str('Column '+str(i))]['Costs M€'][method] = round(-TAC, 2)
+#             TotalCosts[str('Column '+str(i))]['Topvalue M€'][method] = round(top_stream_revenue, 2)
+#             TotalCosts[str('Column '+str(i))]['Bottomvalue M€'][method] = round(bottom_stream_revenue, 2)
+#             TotalCosts[str('Column '+str(i))]['Diameter m'][method] = round(D, 2)
+#             TotalCosts[str('Column '+str(i))]['A cnd m2'][method] = round(a_cnd, 2)
+#             TotalCosts[str('Column '+str(i))]['A rbl m2'][method] = round(a_rbl, 2)
+#             TotalCosts[str('Column ' + str(i))]['Cost column M€'][method] = round(c_col / 1000000, 2)
+#             TotalCosts[str('Column ' + str(i))]['Cost internals M€'][method] = round(c_int/1000000, 2)
+#             TotalCosts[str('Column ' + str(i))]['Cost condenser M€'][method] = round(c_cnd/1000000, 2)
+#             TotalCosts[str('Column ' + str(i))]['Cost reboiler M€'][method] = round(c_rbl/1000000, 2)
+#             TotalCosts[str('Column ' + str(i))]['Operating cost M€'][method] = round(operating, 2)
+#
+#     df = pd.DataFrame(TotalCosts)
+#     print(df)
+#     pprint.pprint(TotalCosts, sort_dicts=False)
+#
+#     total_TAC_linear = sum(d['Costs M€']['linear'] for d in TotalCosts.values() if d)
+#     total_top_linear = sum(d['Topvalue M€']['linear'] for d in TotalCosts.values() if d)
+#     total_bottom_linear = sum(d['Bottomvalue M€']['linear'] for d in TotalCosts.values() if d)
+#
+#     total_TAC_tree = sum(d['Costs M€']['tree'] for d in TotalCosts.values() if d)
+#     total_top_tree = sum(d['Topvalue M€']['tree'] for d in TotalCosts.values() if d)
+#     total_bottom_tree = sum(d['Bottomvalue M€']['tree'] for d in TotalCosts.values() if d)
+#
+#     print(f"Total TAC:  M€ linear: {total_TAC_linear}, tree: {total_TAC_tree}")
+#     print(f"Total top:  M€ linear: {round(total_top_linear,2)}, tree: {round(total_top_tree,2)}")
+#     print(f"Total bottom:  M€ linear: {round(total_bottom_linear,2)}, tree: {round(total_bottom_tree,2)}")
+#
+#     yearly_revenue_linear = total_TAC_linear + total_top_linear + total_bottom_linear
+#     yearly_revenue_tree = total_TAC_tree + total_top_tree + total_bottom_tree
+#
+#     print(f"Yearly profit:  M€ linear: {yearly_revenue_linear}, tree: {yearly_revenue_tree}")
+#
+else:
+    Number = [1, 2, 3]
+    path = r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - HighFlow.xlsx"
+    Cost = []
+    StreamSpec = 8
+    ColumnInput = 5
+    distil = AspenAPI()
+    stream = Simulation.Simulation(VISIBILITY=False)
+
+    Total_costs.clear()
+    topvalue.clear()
+    botsvalue.clear()
+    Diameter.clear()
+    A_cnd.clear()
+    A_rbl.clear()
+    cost_column.clear()
+    cost_internals.clear()
+    cost_condenser.clear()
+    cost_reboiler.clear()
+    Operating_cost.clear()
+
+    for i in Number:
+        data = pd.read_excel(path, sheet_name="Luyben Col "+str(i))
+
+        stream_spec = filter(round(data.StreamSpecification, 2))
+        column_input = filter(round(data.ColumnInputSpecification, 2))
+        column_output = filter(round(data.ColumnOutputSpecification, 2))
+        temperature = filter(round(data.Temperature, 2))
+        diameter = filter(round(data.diameter, 2))
+        top_stream = filter(round(data.TopStream, 2))
+        bot_stream = filter(round(data.BotStream, 2))
+        top_product_specification = filter(round(data.TopPurity, 2))
+        bot_product_specification = filter(round(data.BotPurity, 2))
+
+        TAC, a_cnd, a_rbl, c_col, c_int, c_cnd, c_rbl, operating = distil.Luyben_get_column_cost(stream_spec=stream_spec[-1],
+                                            n_stages=column_input[0],
+                                           column_output=column_output,
+                                           temperature=temperature,
+                                            diameter=diameter[0])
+
+        top_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=top_stream,
+                                                       product_specification=top_product_specification)
+        bottom_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=bot_stream,
+                                                                  product_specification=bot_product_specification)
+
+        Total_costs.append(TAC)
+        topvalue.append(top_stream_revenue)
+        botsvalue.append(bottom_stream_revenue)
+        Diameter.append(diameter)
+        A_cnd.append(a_cnd)
+        A_rbl.append(a_rbl)
+        cost_column.append(c_col/1000000)
+        cost_internals.append(c_int/1000000)
+        cost_condenser.append(c_cnd/1000000)
+        cost_reboiler.append(c_rbl/1000000)
+        Operating_cost.append(operating)
+
+        if i == 3:
+            df_luyben = pd.DataFrame({
+                "Number": Number,
+                "Costs M€": Total_costs,
+                'Topvalue M€': topvalue,
+                'Bottomvalue M€': botsvalue,
+                'Diameter m': Diameter,
+                'A cnd m2': A_cnd,
+                'A rbl m2': A_rbl,
+                'Cost column M€': cost_column,
+                'Cost internals M€': cost_internals,
+                'Cost condenser M€': cost_condenser,
+                'Cost reboiler M€': cost_reboiler,
+                'Operating cost M€': operating,
+            })
+
+#         TotalCosts[str('Column '+str(i))]['Costs']=-TAC
+#         TotalCosts[str('Column '+str(i))]['Topvalue']=top_stream_revenue
+#         TotalCosts[str('Column '+str(i))]['Bottomvalue'] = bottom_stream_revenue
+#
+#     pprint.pprint(TotalCosts,sort_dicts=False)
+#     total_TAC = sum(d['Costs'] for d in TotalCosts.values() if d)
+#     total_top = sum(d['Topvalue'] for d in TotalCosts.values() if d)
+#     total_bottom = sum(d['Bottomvalue'] for d in TotalCosts.values() if d)
+#
+#     print(f"Total TAC: {total_TAC}")
+#     print(f"Total top: {total_top}")
+#     print(f"Total bottom: {total_bottom}")
+#
+#     yearly_revenue = total_TAC + total_top + total_bottom
+#     print(f"Yearly revenue: {yearly_revenue}")
+#
+#
+#
+#
 
