@@ -290,7 +290,7 @@ class Simulation():
         T_cool_in = 30  # Supply cooling water temperature [°C] (30, fixed)
         T_cool_out = 40  # Return cooling water temperature [°C] (40, fixed)
         C_op_rbl = reboiler_duty / 1000000 * M * c_steam * 3600 / delta_hv  # €/h
-        C_op_cnd = condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
+        C_op_cnd = -condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
         C_op = C_op_rbl + C_op_cnd  # €/h
         return C_op
 
