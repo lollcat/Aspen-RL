@@ -5,17 +5,17 @@ import numpy as np
 import time
 
 class Simulation():
-    # AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
+    AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
     def __init__(self, VISIBILITY, max_iterations: int = 100):
-        # print(os.getcwd())
-        # os.chdir('../AspenSimulation')
-        # print(os.getcwd())
-        # self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        # self.AspenSimulation.Visible = VISIBILITY
-        # self.AspenSimulation.SuppressDialogs = True
-        # self.max_iterations = max_iterations
-        # self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        print(os.getcwd())
+        os.chdir('../AspenSimulation')
+        print(os.getcwd())
+        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        self.AspenSimulation.Visible = VISIBILITY
+        self.AspenSimulation.SuppressDialogs = True
+        self.max_iterations = max_iterations
+        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
         self.duration = 0
         self.converged = False
         self.tries = 0
@@ -121,6 +121,7 @@ class Simulation():
 
 
     def Run(self):
+        self.tries = 0
         while self.tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
@@ -267,15 +268,17 @@ class Simulation():
         }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
 
         for entry in component_specifications:
+            component_specifications[entry]['mass flow'] = stream_specification[
+                                                               component_specifications[entry]['index']] * \
+                                                           component_specifications[entry][
+                                                               'molar weight'] / 1000 * up_time  # ton/year
+        total_flow = sum(d['mass flow'] for d in component_specifications.values() if d)
+        for entry in component_specifications:
             if sum(is_purity) > 0:
-                component_specifications[entry]['mass flow'] = stream_specification[
-                                                                   component_specifications[entry]['index']] * \
-                                                               component_specifications[entry][
-                                                                   'molar weight'] / 1000 * up_time  # ton/year
                 component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] \
-                                                                  *component_specifications[entry]['price'] * \
-                                                                  component_specifications[entry][
-                                                                      'mass flow']/1000  # T€/year
+                                                                  * component_specifications[entry]['price'] * \
+                                                                  total_flow / 1000000  # M€/year
+
             elif sum(is_purity) == 0:
                 component_specifications[entry]['stream value'] = 0
 

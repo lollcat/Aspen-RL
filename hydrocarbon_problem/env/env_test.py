@@ -69,7 +69,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
                 # if we choose to separate a stream, then the reward should be non-zero, the created state
                 # discount's should both be 1, the created_states should have non-zero values.
                 assert not timestep.reward == 0.0
-                print(env._stream_table)
+                # print(env._stream_table)
                 if env._stream_table[-2].is_product or env._stream_table[-2].is_outlet:
                     # if tops is product, check discount is 0 else, check discount is 1
                     assert timestep.discount.created_states[0] == 0
