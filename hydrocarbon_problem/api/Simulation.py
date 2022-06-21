@@ -20,22 +20,26 @@ class Simulation():
         self.converged = False
         self.tries = 0
 
-
     @property
     def BLK(self):
         return self.AspenSimulation.Tree.Elements("Data").Elements("Blocks")
 
+
     def BLK_NumberOfStages(self, nstages):
         self.BLK.Elements("B1").Elements("Input").Elements("NSTAGE").Value = nstages
+
 
     def BLK_FeedLocation(self, Feed_Location, Feed_Name):
         self.BLK.Elements("B1").Elements("Input").Elements("FEED_STAGE").Elements(Feed_Name).Value = Feed_Location
 
+
     def BLK_Pressure(self, Pressure):
         self.BLK.Elements("B1").Elements("Input").Elements("PRES1").Value = Pressure
 
+
     def BLK_RefluxRatio(self, RfxR):
         self.BLK.Elements("B1").Elements("Input").Elements("BASIS_RR").Value = RfxR
+
 
     def BLK_ReboilerRatio(self, RblR):
         self.BLK.Elements("B1").Elements("Input").Elements("BASIS_BR").Value = RblR
@@ -111,11 +115,8 @@ class Simulation():
 
     def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
         V = []
-        try:
-            for i in range(1, N_stages + 1):
-                V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
-        except AttributeError:
-            breakpoint()
+        for i in range(1, N_stages + 1):
+            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
         return V
 
     def Run(self):
@@ -124,6 +125,7 @@ class Simulation():
             start = time.time()
             self.AspenSimulation.Engine.Run2()
             self.duration = time.time() - start
+
             print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
@@ -142,7 +144,7 @@ class Simulation():
 
         for i in range(0, n_stages - 1):
             Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-                R * (stage_temp[i] + 273.15) * stage_mw[i] * 1000 / (P * 1e5)))]
+                R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
 
         Diameter = 1.1 * max(Effective_Diameter)
         return Diameter
@@ -157,12 +159,17 @@ class Simulation():
         T_cool_out = 40  # Return temperature of cooling water [oC]
         delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
                 (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
-        return delta_Tm_cnd.real
+        return delta_Tm_cnd
 
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
-        delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
-        A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        delta_Tm_cnd = self.CAL_LMTD(tops_temperature=tops_temperature)
+        area = isinstance(delta_Tm_cnd, float)
+        if area == True:
+            A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        else:
+            A_cnd = 0
+            msg = "T_cool_in > Tops_temperature < T_cool_out"
         return A_cnd
 
     def CAL_HT_Reboiler_Area(self, reboiler_temperature, reboiler_duty):
@@ -180,10 +187,11 @@ class Simulation():
     def CAL_InvestmentCost(self, pressure, n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
                            tops_temperature, vapor_flows, stage_mw, stage_temp):
         # Define in Column Specifications
-        L = self.CAL_Column_Height(n_stages)  # Column length [m]
-        D = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
-        A_cnd = self.CAL_HT_Condenser_Area(condenser_duty, tops_temperature)  # Heat transfer area of condenser [m2]
-        A_rbl = self.CAL_HT_Reboiler_Area(reboiler_temperature, reboiler_duty)  # Heat transfer area of reboiler [m2]
+        L = self.CAL_Column_Height(n_stages=n_stages)  # Column length [m]
+        D = self.CAL_Column_Diameter(pressure=pressure, n_stages=n_stages, vapor_flows=vapor_flows,
+                                     stage_mw=stage_mw, stage_temp=stage_temp)  # Column diameter [m]
+        A_cnd = self.CAL_HT_Condenser_Area(condenser_duty=condenser_duty, tops_temperature=tops_temperature)  # Heat transfer area of condenser [m2]
+        A_rbl = self.CAL_HT_Reboiler_Area(reboiler_temperature=reboiler_temperature, reboiler_duty=reboiler_duty)  # Heat transfer area of reboiler [m2]
         # Predefined values.
         F_m = 1  # Correction factor for column shell material (1.0, fixed)
         F_p = 1  # Correction factor for column pressure (1.0, fixed)
@@ -239,41 +247,8 @@ class Simulation():
 
     def CAL_Annual_OperatingCost(self, reboiler_duty, condenser_duty):
         t_a = 8400
-        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000  # T€/y
+        OperatingCost = self.CAL_OperatingCost(reboiler_duty=reboiler_duty, condenser_duty=condenser_duty) * t_a / 1000  # T€/y
         return OperatingCost
-
-    def CAL_stream_value(self, stream_specification,
-                         product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
-        """Calculates the value (per year) of a stream."""
-
-        up_time = 8400 * 3600  # seconds per year, assuming 8400 hours of uptime
-        is_purity, component_purities = self.CAL_purity_check(stream_specification, product_specification)
-
-        component_specifications = {
-            'ethane': {'index': 0, 'molar weight': 30.07, 'price': 125.0 * 0.91, 'mass flow': 0, 'stream value': 0},
-            'propane': {'index': 1, 'molar weight': 44.1, 'price': 204.0 * 0.91, 'mass flow': 0, 'stream value': 0},
-            'isobutane': {'index': 2, 'molar weight': 58.12, 'price': 272.0 * 0.91, 'mass flow': 0, 'stream value': 0},
-            'n_butane': {'index': 3, 'molar weight': 58.12, 'price': 249.0 * 0.91, 'mass flow': 0, 'stream value': 0},
-            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0},
-            'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
-        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
-
-        for entry in component_specifications:
-            if sum(is_purity) > 0:
-                component_specifications[entry]['mass flow'] = stream_specification.molar_flows[
-                                                                   component_specifications[entry]['index']] * \
-                                                               component_specifications[entry][
-                                                                   'molar weight'] / 1000 * up_time  # ton/year
-                component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] * \
-                                                                  component_specifications[entry]['price'] * \
-                                                                  component_specifications[entry][
-                                                                      'mass flow']/1000  # T€/year
-            elif sum(is_purity) == 0:
-                component_specifications[entry]['stream value'] = 0
-
-        total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
-
-        return total_stream_value, component_purities
 
     def CAL_purity_check(self, stream_specification, product_specification):
 
@@ -291,3 +266,41 @@ class Simulation():
                 is_purity[entry] = 0
 
         return is_purity, component_purities
+
+    def CAL_stream_value(self, stream_specification,
+                         product_specification):  # , component_specifications, molar_flows, stream_component_specifications):
+        """Calculates the value (per year) of a stream."""
+
+        up_time = 8400 * 3600  # seconds per year, assuming 8400 hours of uptime
+        is_purity, component_purities = self.CAL_purity_check(stream_specification=stream_specification,
+                                                              product_specification=product_specification)
+
+        component_specifications = {
+            'ethane': {'index': 0, 'molar weight': 30.07, 'price': 125.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'propane': {'index': 1, 'molar weight': 44.1, 'price': 204.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isobutane': {'index': 2, 'molar weight': 58.12, 'price': 272.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_butane': {'index': 3, 'molar weight': 58.12, 'price': 249.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0},
+            'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
+        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
+
+        for entry in component_specifications:
+            component_specifications[entry]['mass flow'] = stream_specification.molar_flows[component_specifications[entry]['index']] * \
+                                                           component_specifications[entry]['molar weight'] / \
+                                                           1000 * up_time
+                                                           #     component_specifications[entry]['index']] * \
+                                                           # component_specifications[entry][
+                                                           #     'molar weight'] / 1000 * up_time  # ton/year
+        total_flow = sum(d['mass flow'] for d in component_specifications.values() if d)
+        for entry in component_specifications:
+            if sum(is_purity) > 0:
+                component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] \
+                                                                  * component_specifications[entry]['price'] * \
+                                                                  total_flow / 1000000  # M€/year
+
+            elif sum(is_purity) == 0:
+                component_specifications[entry]['stream value'] = 0
+
+        total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
+
+        return total_stream_value.real
