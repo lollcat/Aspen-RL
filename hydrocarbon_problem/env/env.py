@@ -13,12 +13,12 @@ from hydrocarbon_problem.env.types_ import Stream, Column, TimestepObservation, 
 
 Action = Tuple[np.ndarray, np.ndarray]
 
-_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=1.8204,
-                                                  propane=1022.155,
-                                                  isobutane=1081.621,
-                                                  n_butane=464.809,
-                                                  isopentane=309.771,
-                                                  n_pentane=155.644)
+_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=0.0017,
+                                                  propane=1.1098,
+                                                  isobutane=1.1977,
+                                                  n_butane=0.5158,
+                                                  isopentane=0.3443,
+                                                  n_pentane=0.1732)
 DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 pressure=25,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
@@ -230,11 +230,11 @@ class AspenDistillation(dm_env.Environment):
     def _get_upcoming_stream(self) -> Stream:
         """For the next action, get a stream from the
         self._stream_numbers_yet_to_be_acted_on list."""
-        try:
-            self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
-        except IndexError:
-            print(f"{self._stream_numbers_yet_to_be_acted_on}")
-            breakpoint()
+        # try:
+        self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        # except IndexError:
+        #     print(f"{self._stream_numbers_yet_to_be_acted_on}")
+        #     breakpoint()
 
         stream = self._stream_table[self._current_stream_number]
         return stream

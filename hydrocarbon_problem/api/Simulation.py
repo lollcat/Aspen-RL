@@ -4,6 +4,19 @@ import win32com.client as win32
 import numpy as np
 import time
 
+"""
+Stream spec = [inlet temperature [oC], pressure [bar]]
+column input = # of stages
+column output = [condenser duty [W], reboiler duty [W]]
+Temp profile = temperature per stage [oC]
+vap profile = molar vapor flow per stage [mol/s]
+vaporMW profile = vapor molar weight per stage [g/mol]
+top_stream = top molar flows [kmol/h]
+bot_stream = bottom molar flows [kmol/h]
+top_product_specification = top purities
+bottom_product_specification = top purities
+"""
+
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
@@ -91,7 +104,7 @@ class Simulation():
         # (to be looked into further in the future).
         if condenser_duty > 0:
             condenser_duty = 0
-        return condenser_duty
+        return condenser_duty  # Watt
 
     def BLK_Get_Reboiler_Duty(self):
         reboiler_duty = self.BLK.Elements("B1").Elements("Output").Elements("REB_DUTY").Value
@@ -99,25 +112,25 @@ class Simulation():
         # (to be looked into further in the future).
         if reboiler_duty < 0:
             reboiler_duty = 0
-        return reboiler_duty
+        return reboiler_duty  # Watt
 
     def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
         M = []
         for i in range(1, N_stages + 1):
             M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
-        return M
+        return M  # g/mol
 
     def BLK_Get_Column_Stage_Temperatures(self, N_stages):
         T = []
         for i in range(1, N_stages + 1):
             T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
-        return T
+        return T  # degree C
 
     def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
         V = []
         for i in range(1, N_stages + 1):
-            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
-        return V
+            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
+        return V  # mol/s
 
     def Run(self):
         self.tries = 0
