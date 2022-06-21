@@ -38,10 +38,22 @@ path_high = [r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base 
             r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - HighFlow.xlsx"]
 path_low = [r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Linear\Linear BaseCase - LowFlow.xlsx",
      r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - LowFlow.xlsx"]
-StreamSpec = 8
-ColumnInput = 5
+
 distil = AspenAPI()
 stream = Simulation.Simulation(VISIBILITY=False)
+
+"""
+Stream spec = [inlet temperature [oC], pressure [bar]]
+column input = # of stages
+column output = [condenser duty [W], reboiler duty [W]]
+Temp profile = temperature per stage [oC]
+vap profile = molar vapor flow per stage [mol/s]
+vaporMW profile = vapor molar weight per stage [g/mol]
+top_stream = top molar flows [kmol/h]
+bot_stream = bottom molar flows [kmol/h]
+top_product_specification = top purities
+bottom_product_specification = top purities
+"""
 
 for j in sep:
     Number = [1, 2, 3, 4]
@@ -66,7 +78,7 @@ for j in sep:
         column_input = filter(round(data.ColumnInputSpecification, 2))
         column_output = filter(round(data.ColumnOutputSpecification, 2))
         temp_profile = filter(round(data.TemperatureDegree, 2))
-        vap_flow_profile = filter(round(data.Vapourflow, 2))
+        vap_flow_profile = filter(round(data.Vapourflow_mol_s, 2))
         vap_MW_profile = filter(round(data.VapourMW, 2))
         top_stream = filter(round(data.TopStream, 2))
         bot_stream = filter(round(data.BotStream, 2))
@@ -119,6 +131,7 @@ for j in sep:
                 'Operating cost M€': Operating_cost,
             })
             df_linear = df_linear.copy()
+            df_linear.name = 'Linear'
 
 
         elif j == 1 and i == 4:
@@ -139,19 +152,30 @@ for j in sep:
                 'Operating cost M€': Operating_cost,
             })
             df_tree = df_tree.copy()
+            df_tree.name = 'Tree'
 
 # else:
 Number = [1, 2, 3]
 path = r"C:\Users\s2399016\Documents\Aspen-RL_v2\Hydrocarbon problem base case\Tree\Tree BaseCase - HighFlow.xlsx"
 distil = AspenAPI()
 stream = Simulation.Simulation(VISIBILITY=False)
-
+"""
+Stream spec = [inlet temperature [oC], pressure [bar]]
+column input = # of stages
+column output = [condenser duty [W], reboiler duty [W]]
+Temperature = [top temperature [oC], bottom temperature [oC]]
+diameter = diameter [m]
+top_stream = top molar flows [kmol/h]
+bot_stream = bottom molar flows [kmol/h]
+top_product_specification = top purities
+bottom_product_specification = top purities
+"""
 Total_costs.clear()
 topvalue.clear()
 botsvalue.clear()
 Diameter.clear()
-cond_duty.append(column_output[0])
-reb_duty.append(column_output[1])
+cond_duty.clear()
+reb_duty.clear()
 A_cnd.clear()
 A_rbl.clear()
 cost_column.clear()
@@ -161,37 +185,40 @@ cost_reboiler.clear()
 Operating_cost.clear()
 
 for i in Number:
+
     data = pd.read_excel(path, sheet_name="Luyben Col "+str(i))
 
     stream_spec = filter(round(data.StreamSpecification, 2))
     column_input = filter(round(data.ColumnInputSpecification, 2))
     column_output = filter(round(data.ColumnOutputSpecification, 2))
-    temperature = filter(round(data.Temperature, 2))
+    temperature = filter(round(data.TemperatureDegreeC, 2))
     diameter = filter(round(data.diameter, 2))
-    cond_duty.append(column_output[0])
-    reb_duty.append(column_output[1])
-    A_cnd.append(a_cnd)
-    A_rbl.append(a_rbl)
+    # cond_duty = filter(round(data.column_output[0]))
+    # reb_duty = filter(round(column_output[1]))
+    # A_cnd.append(a_cnd)
+    # A_rbl.append(a_rbl)
     top_stream = filter(round(data.TopStream, 2))
     bot_stream = filter(round(data.BotStream, 2))
     top_product_specification = filter(round(data.TopPurity, 2))
     bot_product_specification = filter(round(data.BotPurity, 2))
 
     TAC, a_cnd, a_rbl, c_col, c_int, c_cnd, c_rbl, operating = distil.Luyben_get_column_cost(stream_spec=stream_spec[-1],
-                                        n_stages=column_input[0],
-                                        column_output=column_output,
-                                        temperature=temperature,
-                                        diameter=diameter[0])
+                                                                                             n_stages=column_input[0],
+                                                                                             column_output=column_output,
+                                                                                             temperature=temperature,
+                                                                                             diameter=diameter[0])
 
     top_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=top_stream,
-                                                    product_specification=top_product_specification)
+                                                       product_specification=top_product_specification)
     bottom_stream_revenue = stream.Excel_CAL_stream_value(stream_specification=bot_stream,
-                                                                product_specification=bot_product_specification)
+                                                          product_specification=bot_product_specification)
 
     Total_costs.append(TAC)
     topvalue.append(top_stream_revenue)
     botsvalue.append(bottom_stream_revenue)
     Diameter.append(diameter)
+    cond_duty.append(column_output[0])
+    reb_duty.append(column_output[1])
     A_cnd.append(a_cnd)
     A_rbl.append(a_rbl)
     cost_column.append(c_col/1000000)
@@ -203,23 +230,38 @@ for i in Number:
     if i == 3:
         df_luyben = pd.DataFrame({
             "Number": Number,
-            "Costs M€": Total_costs,
-            'Topvalue M€': topvalue,
-            'Bottomvalue M€': botsvalue,
-            'Diameter m': Diameter,
-            'A cnd m2': A_cnd,
-            'A rbl m2': A_rbl,
-            'Cost column M€': cost_column,
-            'Cost internals M€': cost_internals,
-            'Cost condenser M€': cost_condenser,
-            'Cost reboiler M€': cost_reboiler,
-            'Operating cost M€': Operating_cost,
+            "Costs [M€]": Total_costs,
+            'Topvalue [M€]': topvalue,
+            'Bottomvalue [M€]': botsvalue,
+            'Diameter [m]': Diameter,
+            'Cond duty [W}': cond_duty,
+            'Reb duty [W]': reb_duty,
+            'A cnd [m2]': A_cnd,
+            'A rbl [m2]': A_rbl,
+            'Cost column [M€]': cost_column,
+            'Cost internals [M€]': cost_internals,
+            'Cost condenser [M€]': cost_condenser,
+            'Cost reboiler [M€]': cost_reboiler,
+            'Operating cost [M€]': Operating_cost,
         })
         df_luyben = df_luyben.copy()
-            # with pd.ExcelWriter("Evaluation.xlsx") as writer:
-            #     df_luyben.to_excel(excel_writer=writer, sheet_name='Luyben')
+        df_luyben.name = 'Luyben'
+        # with pd.ExcelWriter("Evaluation.xlsx") as writer:
+        #     df_luyben.to_excel(excel_writer=writer, sheet_name='Luyben')
 
-with pd.ExcelWriter("Evaluation.xlsx") as writer:
-    df_linear.to_excel(excel_writer=writer, sheet_name='Linear')
-    df_tree.to_excel(excel_writer=writer, sheet_name='Tree')
-    df_luyben.to_excel(excel_writer=writer, sheet_name='Luyben')
+# with pd.ExcelWriter("Evaluation.xlsx") as writer:
+#     df_linear.to_excel(excel_writer=writer, sheet_name='Linear')
+#     df_tree.to_excel(excel_writer=writer, sheet_name='Tree')
+#     df_luyben.to_excel(excel_writer=writer, sheet_name='Luyben')
+writer = pd.ExcelWriter("Evaluation.xlsx", engine='xlsxwriter')
+workbook=writer.book
+worksheet=workbook.add_worksheet('Result')
+writer.sheets['Result']=worksheet
+worksheet.write_string(0,0,df_linear.name)
+
+df_linear.to_excel(writer,sheet_name='Result', startrow=0, startcol=0)
+worksheet.write_string(df_linear.shape[0]+4,0,df_tree.name)
+df_tree.to_excel(writer,sheet_name='Result', startrow=df_linear.shape[0]+4, startcol=0)
+worksheet.write_string(df_linear.shape[0]+12,0,df_luyben.name)
+df_luyben.to_excel(writer,sheet_name='Result', startrow=df_linear.shape[0]+12, startcol=0)
+writer.save()
