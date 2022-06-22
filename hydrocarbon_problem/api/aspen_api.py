@@ -143,29 +143,32 @@ class AspenAPI(BaseAspenDistillationAPI):
                                     product_specification: ProductSpecification) -> \
             Tuple[bool, bool]:
         """Checks whether a stream meets the product specification."""
-        total_flow = sum(stream.molar_flows)
-        if total_flow < 0.001:
-            is_outlet = True
-            is_product = False
-        else:
-            is_outlet = False
-            is_purity, component_purities = self._flowsheet.CAL_purity_check(stream_specification=stream,
-                                                                             product_specification=product_specification.purity)
-            if np.any(is_purity):
-                is_product = True
-
-        # is_purity, component_purities = self._flowsheet.CAL_purity_check(
-        #     stream_specification=stream, product_specification=product_specification.purity)
+        # is_product = False
         # total_flow = sum(stream.molar_flows)
-        # if np.any(is_purity):
-        #     is_product = True
+        # if total_flow < 0.001:
         #     is_outlet = True
-        # else:
         #     is_product = False
-        #     if total_flow < 0.001:
-        #         is_outlet = True
-        #     else:
-        #         is_outlet = False
+        # else:
+        #     is_outlet = False
+        #     is_purity, component_purities = self._flowsheet.CAL_purity_check(stream_specification=stream,
+        #                                                                      product_specification=product_specification.purity)
+        #     if np.any(is_purity):
+        #         is_product = True
+        total_flow = sum(stream.molar_flows)
+        if total_flow > 0.001:
+            is_purity, component_purities = self._flowsheet.CAL_purity_check(
+                stream_specification=stream, product_specification=product_specification.purity)
+        else:
+            is_purity = [0, 0, 0, 0, 0, 0]
+        if np.any(is_purity):
+            is_product = True
+            is_outlet = True
+        else:
+            is_product = False
+            if total_flow < 0.001:
+                is_outlet = True
+            else:
+                is_outlet = False
         return is_product, is_outlet
 
 

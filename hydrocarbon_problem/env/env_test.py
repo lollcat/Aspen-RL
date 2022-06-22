@@ -16,7 +16,7 @@ def make_fake_agent(env: AspenDistillation):
     return fake_agent
 
 
-def test(n_episodes: int = 2500, use_fake_api: bool = False):
+def test(n_episodes: int = 5, use_fake_api: bool = False):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
@@ -35,9 +35,9 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
     _return = []
     tries = []
     episode = 1
-    column_spec = np.array([0, 0, 0, 0, 0, 0], dtype=object)
+    column_spec = np.array(['Episode', 'Iteration', 'Reward', 'Aspen converged', 'Separation', 'Feed specification',
+                            'Top stream', 'Bottom stream', 'Column input spec', 'Column output spec'], dtype=object)
     iterator = 1
-
     for i in range(n_episodes):
         start = time.time()
         print(f"Episode: {episode}")
@@ -52,25 +52,34 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
                 api: AspenAPI
                 # now if I want to I can access some variable saved in simulation
                 simulation = api._flowsheet
-
             if env.choose_separate:
+                aspen = simulation.converged
                 new_column_spec = np.array([episode,
                                             iterator,
-                                            env.feed_stream,
+                                            timestep.reward,
+                                            aspen,
                                             env.choose_separate,
+                                            env.feed_stream,
+                                            env.tops_stream,
+                                            env.bottoms_stream,
                                             env.column_input_spec,
                                             env.column_output_spec], dtype=object)
                 column_spec = np.vstack([column_spec, new_column_spec])
             else:
+                aspen = 'No aspen run'
                 no_new_column_spec = np.array([episode,
                                                iterator,
-                                               env.feed_stream,
+                                               timestep.reward,
+                                               aspen,
                                                "no separation",
+                                               env.feed_stream,
+                                               "No new top stream",
+                                               "No new bottom stream",
                                                "No new column input spec",
                                                "No new column output spec"], dtype=object)
-                column_spec = np.vstack([column_spec,no_new_column_spec])
+                column_spec = np.vstack([column_spec, no_new_column_spec])
 
-            print(column_spec)
+            # print(column_spec)
             simulation_time.append(simulation.duration)
             converged.append(simulation.converged)
             tries.append(simulation.tries+1)
@@ -107,13 +116,17 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
                     # if the episode is not done, then check that the upcoming observation has
                     # non-zero values
                     assert not (timestep.observation.upcoming_state == env._blank_state).all()
-
+                if timestep.last():
+                    iterator = iterator
+                else:
+                    iterator += 1
             # check the stream table has the correct number of streams
             assert len(env._stream_table) == n_streams
         episode_timer = time.time() - start
         print(f"episode complete with return of {episode_return}")
         _return.append(episode_return)
         episodic_time.append(episode_timer)
+        iterator = 1
         episode += 1
 
     if use_fake_api is False:
@@ -121,7 +134,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
         simulation = api._flowsheet
         # now if I want to I can acesss some variable saved in simulation
         print(simulation)
-    return simulation_time, converged, _return, episodic_time
+    return simulation_time, converged, _return, episodic_time, column_spec
 
 
 if __name__ == '__main__':
@@ -129,7 +142,7 @@ if __name__ == '__main__':
     if use_fake_api:
         test(100)
     else:
-        simulation_time, converged, _return, episodic_time = test()
+        simulation_time, converged, _return, episodic_time, column_spec = test()
 
         # Separate the convergence data
         unconverged_separations = [index for (index, item) in enumerate(converged) if item == False]

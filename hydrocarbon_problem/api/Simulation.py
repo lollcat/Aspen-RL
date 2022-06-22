@@ -134,11 +134,11 @@ class Simulation():
 
     def Run(self):
         self.tries = 0
+        self.converged = False
         while self.tries != 2:
             start = time.time()
             self.AspenSimulation.Engine.Run2()
             self.duration = time.time() - start
-
             print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
