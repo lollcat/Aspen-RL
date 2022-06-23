@@ -16,23 +16,23 @@ def test_critic_net(env: AspenDistillation, network: SACNetworks):
     critic_params = network.q_network.init(seed)
 
     q_value = network.q_network.apply(critic_params, obs, action)
-    chex.assert_shape(q_value, (1,))
+    chex.assert_shape(q_value, (2,))
 
     # test with non-0 discount
     next_obs = NextObservation(observation=(obs, obs),
                                discounts=(jnp.array(1.0), jnp.array(1.0)))
     next_action = action, action
     next_q_value = network.q_network.apply(critic_params, next_obs, next_action)
-    chex.assert_shape(q_value, (1,))
-    assert next_q_value == q_value*2  # should be double the q value for 2 streams
+    chex.assert_shape(q_value, (2,))
+    assert (next_q_value == q_value*2).all()  # should be double the q value for 2 streams
 
     # test with 0 discount
     next_obs = NextObservation(observation=(obs, obs),
                                discounts=(jnp.array(0.0), jnp.array(0.0)))
     next_action = action, action
     next_q_value = network.q_network.apply(critic_params, next_obs, next_action)
-    chex.assert_shape(q_value, (1,))
-    assert next_q_value == 0.0
+    chex.assert_shape(q_value, (2,))
+    assert (next_q_value == 0.0).all()
 
     print("passed critic tests")
 

@@ -68,6 +68,9 @@ def train(n_iterations: int,
             buffer_state = buffer.add(transition, buffer_state)
             previous_timestep = timestep
 
+            step_metrics = env.info
+            logger.write(step_metrics)
+
         # save useful metrics
         metrics = {"episode_return": episode_return,
                    "episode_time": time.time() - episode_start_time}
@@ -111,8 +114,8 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 20
-    batch_size = 12
+    n_iterations = 5
+    batch_size = 6
     n_sac_updates_per_episode = 1
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.

@@ -2,13 +2,10 @@
 from typing import Tuple, Protocol, Union, NamedTuple
 
 import chex
-
+import tensorflow_probability.substrates.jax as tfp
 from hydrocarbon_problem.agents.base import Observation, Action, NextObservation
 
-class DistParams(NamedTuple):
-    mean: chex.Array
-    log_var: chex.Array
-
+DistParams = tfp.distributions.Distribution
 
 class NextDistParams(NamedTuple):
     # parameters describing distribution over action in both tops and bottoms

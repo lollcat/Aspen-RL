@@ -19,6 +19,8 @@ _DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=1.8204,
                                                   n_butane=464.809,
                                                   isopentane=309.771,
                                                   n_pentane=155.644)
+FLOW_OBS_SCALING = 1000
+
 DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 pressure=25,
                                                 molar_flows=_DEFAULT_INITIAL_FEED_FLOWS)
@@ -68,6 +70,8 @@ class AspenDistillation(dm_env.Environment):
 
         self._blank_state = np.zeros(self.observation_spec().shape)
 
+        self.info = {}
+
     def observation_spec(self) -> specs.Array:
         input_obs = self._stream_to_observation(self._initial_feed)
         single_stream_obs = specs.Array(shape=input_obs.shape, dtype=float)
@@ -108,6 +112,7 @@ class AspenDistillation(dm_env.Environment):
         timestep = dm_env.TimeStep(step_type=dm_env.StepType.FIRST, observation=observation,
                                    reward=None, discount=None)
         self._steps = 0
+        self.info = {}
         return timestep
 
     def step(self, action: Action) -> dm_env.TimeStep:
@@ -158,6 +163,9 @@ class AspenDistillation(dm_env.Environment):
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
                                    reward=reward, discount=discount)
+
+        self.info["choose_separate"] = choose_separate
+        self.info.update(column_input_spec._asdict())
         return timestep
 
 
@@ -264,7 +272,11 @@ class AspenDistillation(dm_env.Environment):
         """Convert the Stream object into an observation that can be passed to the agent,
         in the form of an array."""
         stream_spec = stream.specification
-        obs = np.array([stream_spec.temperature, stream_spec.pressure] +
-                       list(stream_spec.molar_flows))
+        temp_scaling = 100
+        pressure_scaling = 25
+        molar_flows = [flow / FLOW_OBS_SCALING for flow in stream_spec.molar_flows]
+        obs = np.array([stream_spec.temperature/temp_scaling,
+                        stream_spec.pressure/pressure_scaling] + molar_flows
+                       )
         return obs
 

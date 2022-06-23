@@ -4,11 +4,11 @@ import chex
 import haiku as hk
 import jax.numpy as jnp
 import jax.random
-import tensorflow_probability.substrates.jax as tfp
 
 from hydrocarbon_problem.agents.sac.networks import SACNetworks, DistParams, NextDistParams, NextAction
 from hydrocarbon_problem.agents.base import Observation, Action, NextObservation
 from hydrocarbon_problem.env.env import AspenDistillation
+from acme.jax import networks as networks_lib
 
 
 
@@ -28,13 +28,25 @@ def create_sac_networks(env: AspenDistillation,
     @hk.without_apply_rng
     @hk.transform
     def q_value_network_forward_single(observation: Observation, action: Action) -> chex.Array:
+        network1 = hk.Sequential([
+            hk.nets.MLP(
+                list(q_value_hidden_units) + [1],
+                w_init=hk.initializers.VarianceScaling(1.0, 'fan_in', 'uniform'),
+                activation=jax.nn.relu),
+        ])
+        network2 = hk.Sequential([
+            hk.nets.MLP(
+                list(q_value_hidden_units) + [1],
+                w_init=hk.initializers.VarianceScaling(1.0, 'fan_in', 'uniform'),
+                activation=jax.nn.relu),
+        ])
+        action = jnp.concatenate([action[0][..., None], action[1]], axis=-1)
+        input_ = jnp.concatenate([observation, action], axis=-1)
+        value1 = network1(input_)
+        value2 = network2(input_)
         #TODO for now let's just concat the actions, later we may return 0 value if
         # choose not separate.
-        action = jnp.concatenate([action[0][..., None], action[1]], axis=-1)
-        q_net = hk.nets.MLP(q_value_hidden_units + (1,), activate_final=False)
-        q_net_in = jnp.concatenate([observation, action], axis=-1)
-        q_value = q_net(q_net_in)
-        return q_value
+        return jnp.concatenate([value1, value2], axis=-1)
 
     def q_network_forward(q_params: chex.ArrayTree,
                           observation: Union[Observation, NextObservation],
@@ -45,7 +57,7 @@ def create_sac_networks(env: AspenDistillation,
             tops_action, bottoms_action = action
             q_top = q_value_network_forward_single.apply(q_params, tops_obs, tops_action)
             q_bottom = q_value_network_forward_single.apply(q_params, bottoms_obs, bottoms_action)
-            q_value = q_top*tops_discount + q_bottom*bottoms_discount
+            q_value = q_top*tops_discount[:, None] + q_bottom*bottoms_discount[:, None]
         else:
             q_value = q_value_network_forward_single.apply(q_params, observation, action)
         return q_value
@@ -67,11 +79,15 @@ def create_sac_networks(env: AspenDistillation,
     @hk.without_apply_rng
     @hk.transform
     def policy_forward_single(observation: Observation) -> DistParams:
-        policy_net = hk.nets.MLP(policy_hidden_units + (n_continuous_action * 2,),
-                                 activate_final=False)
-        policy_net_out = policy_net(observation)
-        mean, log_var = jnp.split(policy_net_out, 2, axis=-1)
-        return DistParams(mean=mean, log_var=log_var)
+        network = hk.Sequential([
+            hk.nets.MLP(
+                policy_hidden_units,
+                w_init=hk.initializers.VarianceScaling(1.0, 'fan_in', 'uniform'),
+                activation=jax.nn.relu,
+                activate_final=True),
+            networks_lib.NormalTanhDistribution(n_continuous_action),
+        ])
+        return network(observation)
 
 
     def policy_forward(policy_params: chex.ArrayTree,
@@ -96,19 +112,10 @@ def create_sac_networks(env: AspenDistillation,
                                     apply=policy_forward)
 
 
-
-    def get_dist(dist_params: DistParams) -> tfp.distributions.Distribution:
-        scale_diag = jax.nn.softplus(dist_params.log_var)
-        dist = tfp.distributions.MultivariateNormalDiag(loc=dist_params.mean,
-                                                        scale_diag=scale_diag)
-        return dist
-
-
     # Now let's create the log prob function jax.nn.softplus(dist_params.log_var)
     def log_prob_single(dist_params: DistParams, action: Action) -> chex.Array:
-        dist = get_dist(dist_params)
         continuos_action = action[1]
-        return dist.log_prob(continuos_action)
+        return dist_params.log_prob(continuos_action)
 
 
     def log_prob(dist_params: Union[DistParams, NextDistParams],
@@ -126,9 +133,8 @@ def create_sac_networks(env: AspenDistillation,
 
 
     def sample_single(dist_params: DistParams, seed: chex.PRNGKey) -> Action:
-        dist = get_dist(dist_params)
-        continuous_action = dist.sample(seed=seed)
-        discrete_action = jnp.ones(dist.batch_shape)
+        continuous_action = dist_params.sample(seed=seed)
+        discrete_action = jnp.ones(dist_params.batch_shape)
         action = discrete_action, continuous_action
         return action
 
