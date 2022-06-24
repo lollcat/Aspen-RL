@@ -70,7 +70,8 @@ if __name__ == '__main__':
 
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
     sac_net = create_sac_networks(env=env,
-                        policy_hidden_units = (3,), q_value_hidden_units = (10, 10))
+                                  policy_hidden_units=(3,),
+                                  q_value_hidden_units=(10, 10))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),

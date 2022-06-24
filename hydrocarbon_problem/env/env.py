@@ -13,13 +13,13 @@ from hydrocarbon_problem.env.types_ import Stream, Column, TimestepObservation, 
 
 Action = Tuple[np.ndarray, np.ndarray]
 
-_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=1.8204,
-                                                  propane=1022.155,
-                                                  isobutane=1081.621,
-                                                  n_butane=464.809,
-                                                  isopentane=309.771,
-                                                  n_pentane=155.644)
-FLOW_OBS_SCALING = 1000
+_DEFAULT_INITIAL_FEED_FLOWS = PerCompoundProperty(ethane=0.0017,
+                                                  propane=1.1098,
+                                                  isobutane=1.1977,
+                                                  n_butane=0.5158,
+                                                  isopentane=0.3443,
+                                                  n_pentane=0.1732)
+FLOW_OBS_SCALING = 1
 
 DEFAULT_INITIAL_FEED_SPEC = StreamSpecification(temperature=105.0,
                                                 pressure=25,
@@ -85,11 +85,11 @@ class AspenDistillation(dm_env.Environment):
 
     def discount_spec(self):
         discount_tops = specs.BoundedArray(
-            shape=(), dtype=float, minimum=0., maximum=1., name='discount_tops')
+            shape=(1,), dtype=float, minimum=0., maximum=1., name='discount_tops')
         discount_bots = specs.BoundedArray(
-            shape=(), dtype=float, minimum=0., maximum=1., name='discount_bots')
+            shape=(1,), dtype=float, minimum=0., maximum=1., name='discount_bots')
         overall = specs.BoundedArray(
-            shape=(), dtype=float, minimum=0., maximum=1., name='discount_overall')
+            shape=(1,), dtype=float, minimum=0., maximum=1., name='discount_overall')
         return Discount(
             overall=overall,
             created_states=(discount_tops, discount_bots))

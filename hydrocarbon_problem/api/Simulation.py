@@ -7,14 +7,14 @@ import time
 class Simulation():
     AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
-    def __init__(self, VISIBILITY, max_iterations: int = 100,
+    def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
         print(os.getcwd())
         os.chdir('../AspenSimulation')
         print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
         self.AspenSimulation.Visible = VISIBILITY
-        self.AspenSimulation.SuppressDialogs = True
+        self.AspenSimulation.SuppressDialogs = SUPPRESS
         self.max_iterations = max_iterations
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
         self.duration = 0
@@ -24,7 +24,6 @@ class Simulation():
     @property
     def BLK(self):
         return self.AspenSimulation.Tree.Elements("Data").Elements("Blocks")
-
 
     def BLK_NumberOfStages(self, nstages):
         self.BLK.Elements("B1").Elements("Input").Elements("NSTAGE").Value = nstages
@@ -63,7 +62,7 @@ class Simulation():
     def STRM_Get_Outputs(self, Name, Chemical):
         STRM_COMP = self.STRM.Elements(Name).Elements("Output").Elements("MOLEFLOW").Elements("MIXED")
         COMP_1 = STRM_COMP.Elements(Chemical).Value
-        return COMP_1
+        return COMP_1  # kmol/s
 
     def STRM_Get_Temperature(self, Name):
         return self.STRM.Elements(Name).Elements("Output").Elements("TEMP_OUT").Elements("MIXED").Value
@@ -92,7 +91,7 @@ class Simulation():
         # (to be looked into further in the future).
         if condenser_duty > 0:
             condenser_duty = 0
-        return condenser_duty
+        return condenser_duty  # Watt
 
     def BLK_Get_Reboiler_Duty(self):
         reboiler_duty = self.BLK.Elements("B1").Elements("Output").Elements("REB_DUTY").Value
@@ -100,28 +99,25 @@ class Simulation():
         # (to be looked into further in the future).
         if reboiler_duty < 0:
             reboiler_duty = 0
-        return reboiler_duty
+        return reboiler_duty  # Watt
 
     def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
         M = []
         for i in range(1, N_stages + 1):
             M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
-        return M
+        return M  # g/mol
 
     def BLK_Get_Column_Stage_Temperatures(self, N_stages):
         T = []
         for i in range(1, N_stages + 1):
             T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
-        return T
+        return T  # degree C
 
     def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
         V = []
-        try:
-            for i in range(1, N_stages + 1):
-                V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value]
-        except AttributeError:
-            breakpoint()
-        return V
+        for i in range(1, N_stages + 1):
+            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
+        return V  # mol/s
 
     def Run(self):
         self.tries = 0
@@ -130,10 +126,10 @@ class Simulation():
             self.AspenSimulation.Engine.Run2()
             self.duration = time.time() - start
 
-            print(f"Run = {self.duration}")
+            # print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                            "B1").Elements("Output").Elements("BLKSTAT").Value
-            print(f"Convergence: {self.converged}")
+            # print(f"Convergence: {self.converged}")
             if self.converged == 0 or self.converged == 2:
                 break
             else:
@@ -168,7 +164,11 @@ class Simulation():
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
         delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
-        A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        Tm_type = isinstance(delta_Tm_cnd, float)
+        if Tm_type == True:
+            A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        else:
+            A_cnd = 0
         return A_cnd
 
     def CAL_HT_Reboiler_Area(self, reboiler_temperature, reboiler_duty):
@@ -176,11 +176,9 @@ class Simulation():
         T_steam = 201  # Temperature of 16 bar steam [°C] (201, fixed)
         if T_steam < reboiler_temperature:
             A_rbl = 0
-
         else:
             delta_tm_rbl = T_steam - reboiler_temperature
             A_rbl = reboiler_duty / (K_rbl * delta_tm_rbl)
-
         return A_rbl
 
     def CAL_InvestmentCost(self, pressure, n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
@@ -212,7 +210,7 @@ class Simulation():
         F_cap = 0.2  # Capital charge factor (0.2, fixed)
         F_L = 5  # Lang factor (5, fixed)
         C_inv = F_L * C_eqp
-        InvestmentCost = F_cap * C_inv
+        InvestmentCost = F_cap * C_inv / 1000  # M€
 
         invest = isinstance(InvestmentCost, float)
         if invest == False:
@@ -239,13 +237,13 @@ class Simulation():
         T_cool_in = 30  # Supply cooling water temperature [°C] (30, fixed)
         T_cool_out = 40  # Return cooling water temperature [°C] (40, fixed)
         C_op_rbl = reboiler_duty / 1000000 * M * c_steam * 3600 / delta_hv  # €/h
-        C_op_cnd = condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
+        C_op_cnd = -condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
         C_op = C_op_rbl + C_op_cnd  # €/h
         return C_op
 
     def CAL_Annual_OperatingCost(self, reboiler_duty, condenser_duty):
         t_a = 8400
-        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000  # T€/y
+        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000000  # M€/y
         return OperatingCost
 
     def CAL_stream_value(self, stream_specification,
@@ -265,15 +263,17 @@ class Simulation():
         }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
 
         for entry in component_specifications:
+            component_specifications[entry]['mass flow'] = stream_specification.molar_flows[
+                                                           component_specifications[entry]['index']] * \
+                                                       component_specifications[entry][
+                                                           'molar weight'] / 1000 * up_time  # ton/year
+        total_flow = sum(d['mass flow'] for d in component_specifications.values() if d)
+
+        for entry in component_specifications:
             if sum(is_purity) > 0:
-                component_specifications[entry]['mass flow'] = stream_specification.molar_flows[
-                                                                   component_specifications[entry]['index']] * \
-                                                               component_specifications[entry][
-                                                                   'molar weight'] / 1000 * up_time  # ton/year
                 component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] * \
-                                                                  component_specifications[entry]['price'] * \
-                                                                  component_specifications[entry][
-                                                                      'mass flow']/1000  # T€/year
+                                                              component_specifications[entry]['price'] * \
+                                                              total_flow/1000000  # M€/year
             elif sum(is_purity) == 0:
                 component_specifications[entry]['stream value'] = 0
 

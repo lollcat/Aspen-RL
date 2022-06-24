@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from functools import partial
 
-
+from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.buffer import ReplayBuffer
@@ -54,7 +54,7 @@ def train(n_iterations: int,
             episode_return += timestep.reward
 
             # add to the buffer
-            next_obs = NextObservation(observation=(timestep.observation.created_states),
+            next_obs = NextObservation(observation=timestep.observation.created_states,
                                        discounts=timestep.discount.created_states)
             transition = Transition(
                 observation=previous_timestep.observation.upcoming_state,
@@ -75,7 +75,7 @@ def train(n_iterations: int,
         metrics = {"episode_return": episode_return,
                    "episode_time": time.time() - episode_start_time}
         logger.write(metrics)
-
+        print(f"Episode return: {episode_return}")
         pbar.set_description(f"episode return of {episode_return:.2f}")
 
         # now update the SAC agent
@@ -95,7 +95,7 @@ def train(n_iterations: int,
         logger.write({"agent_step_time": time.time() - sac_start_time})
 
     plot_history(logger.history)
-    plt.show()
+    plt.show(True)
 
 
 if __name__ == '__main__':
@@ -109,21 +109,23 @@ if __name__ == '__main__':
         # Should be used with care.
         import logging
         logger = logging.getLogger("root")
+
         class CheckTypesFilter(logging.Filter):
             def filter(self, record):
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 5
+    n_iterations = 10
     batch_size = 6
-    n_sac_updates_per_episode = 1
+    n_sac_updates_per_episode = 5
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
-    env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),
-                            product_spec=ProductSpecification(purity=0.5),
+    env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),
+                            product_spec=ProductSpecification(purity=0.95),
                             )
     sac_net = create_sac_networks(env=env,
-                        policy_hidden_units = (10, 10), q_value_hidden_units = (10, 10))
+                                  policy_hidden_units=(10, 10),
+                                  q_value_hidden_units=(10, 10))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),

@@ -72,9 +72,6 @@ def test_policy_net(env: AspenDistillation, network: SACNetworks):
 
     print("passed policy tests")
 
-
-
-
 if __name__ == '__main__':
     from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 
