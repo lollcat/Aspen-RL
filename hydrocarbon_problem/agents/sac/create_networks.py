@@ -57,7 +57,7 @@ def create_sac_networks(env: AspenDistillation,
             tops_action, bottoms_action = action
             q_top = q_value_network_forward_single.apply(q_params, tops_obs, tops_action)
             q_bottom = q_value_network_forward_single.apply(q_params, bottoms_obs, bottoms_action)
-            q_value = q_top*tops_discount[:, None] + q_bottom*bottoms_discount[:, None]
+            q_value = q_top*tops_discount[..., None] + q_bottom*bottoms_discount[..., None]
         else:
             q_value = q_value_network_forward_single.apply(q_params, observation, action)
         return q_value
