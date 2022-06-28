@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from functools import partial
 
-from hydrocarbon_problem.api.aspen_api import AspenAPI
+# from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.buffer import ReplayBuffer
@@ -32,7 +32,7 @@ def train(n_iterations: int,
     buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
 
 
-    logger = ListLogger()
+    logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -95,7 +95,7 @@ def train(n_iterations: int,
         logger.write({"agent_step_time": time.time() - sac_start_time})
 
     plot_history(logger.history)
-    plt.show(True)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -115,12 +115,12 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 10
+    n_iterations = 3
     batch_size = 6
     n_sac_updates_per_episode = 5
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
-    env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),
+    env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
                             product_spec=ProductSpecification(purity=0.95),
                             )
     sac_net = create_sac_networks(env=env,

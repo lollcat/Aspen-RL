@@ -1,18 +1,30 @@
+from typing import Dict, List, Union, Mapping, Any
 from acme.utils.loggers import Logger
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import pathlib
+import pickle
+
+LoggingData = Mapping[str, Any]
 
 
 class ListLogger(Logger):
     """Manually save the data to the class in a dict. Currently only supports scalar history
     inputs."""
-    def __init__(self):
-        self.history = {}
+    def __init__(self, save: bool = True, save_path: str = "/tmp/logging_hist.pkl",
+                 save_period: int = 100):
+        self.save = save
+        self.save_path = save_path
+        if save:
+            if not pathlib.Path(self.save_path).parent.exists():
+                pathlib.Path(self.save_path).parent.mkdir(exist_ok=True, parents=True)
+        self.save_period = save_period  # how often to save the logging history
+        self.history: Dict[str, List[Union[np.ndarray, float, int]]] = {}
         self.print_warning: bool = False
         self.iter = 0
 
-    def write(self, data) -> None:
+    def write(self, data: LoggingData) -> None:
         for key, value in data.items():
             if key in self.history:
                 try:
@@ -34,9 +46,13 @@ class ListLogger(Logger):
                 self.history[key] = [value]
 
         self.iter += 1
+        if self.save and (self.iter + 1) % self.save_period == 0:
+            pickle.dump(self.history, open(self.save_path, "wb")) # overwrite with latest version
+            print(f"saved latest logging results to {self.save_path}")
 
     def close(self) -> None:
-        pass
+        if self.save:
+            pickle.dump(self.history, open(self.save_path, "wb"))
 
 
 def plot_history(history):
