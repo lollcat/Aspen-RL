@@ -1,7 +1,6 @@
 import numpy as np
 import time
 
-from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
 from hydrocarbon_problem.env.env import AspenDistillation
 
 
@@ -17,7 +16,7 @@ def make_fake_agent(env: AspenDistillation):
     return fake_agent
 
 
-def test(n_episodes: int = 2500, use_fake_api: bool = True):
+def test(n_episodes: int = 2500, use_fake_api: bool = False):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
@@ -34,6 +33,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
     episodic_time = []
     converged = []
     _return = []
+    tries = []
     episode = 1
 
     for i in range(n_episodes):
@@ -45,9 +45,15 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
         while not timestep.last():
             observation = timestep.observation.upcoming_state
             action = agent(observation)
-            timestep, duration, run_converged = env.step(action)
-            simulation_time.append(duration)
-            converged.append(run_converged)
+            timestep = env.step(action)
+            if use_fake_api is False:
+                api: AspenAPI
+                # now if I want to I can access some variable saved in simulation
+                simulation = api._flowsheet
+
+            simulation_time.append(simulation.duration)
+            converged.append(simulation.converged)
+            tries.append(simulation.tries+1)
             print(timestep)
             episode_return += timestep.reward
             discrete_action = action[0]
@@ -60,19 +66,21 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
                 assert (timestep.observation.created_states[0] == env._blank_state).all()
             else:
                 n_streams += 2  # 2 new streams created
-                # if we choose to seperate a stream, then the reward should be non-zero, the created state
+                # if we choose to separate a stream, then the reward should be non-zero, the created state
                 # discount's should both be 1, the created_states should have non-zero values.
                 assert not timestep.reward == 0.0
-                if env._stream_table[-2].is_product:
+                print(env._stream_table)
+                if env._stream_table[-2].is_product or env._stream_table[-2].is_outlet:
                     # if tops is product, check discount is 0 else, check discount is 1
                     assert timestep.discount.created_states[0] == 0
                 else:
                     assert timestep.discount.created_states[0] == 1
-                if env._stream_table[-1].is_product:
+                if env._stream_table[-1].is_product or env._stream_table[-1].is_outlet:
                     # if bots is product, check discount is 0 else, check discount is 1
                     assert timestep.discount.created_states[1] == 0
                 else:
                     assert timestep.discount.created_states[1] == 1
+
                 assert not (timestep.observation.created_states[1] == env._blank_state).all()
                 assert not (timestep.observation.created_states[0] == env._blank_state).all()
                 if not timestep.last():
@@ -97,7 +105,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = True):
 
 
 if __name__ == '__main__':
-    use_fake_api = True
+    use_fake_api = False
     if use_fake_api:
         test(100)
     else:

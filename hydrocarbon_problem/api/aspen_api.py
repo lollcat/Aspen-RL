@@ -12,6 +12,7 @@ class AspenAPI(BaseAspenDistillationAPI):
     def __init__(self, max_solve_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
         self._flowsheet: Simulation = Simulation(VISIBILITY=False,
+                                                 SUPPRESS= True,
                                                  max_iterations=max_solve_iterations,
                                                  flowsheet_path=flowsheet_path)
         self._feed_name: str = "S1"
@@ -102,35 +103,25 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-    def solve_flowsheet(self) -> Tuple[float, bool]:
-        duration, run_converged = self._flowsheet.Run()
-        return duration, run_converged
+    def solve_flowsheet(self) -> None:
+        self._flowsheet.Run()
+
 
     def get_column_cost(self, stream_specification: StreamSpecification, column_input_specification: ColumnInputSpecification,
                         column_output_specification: ColumnOutputSpecification) -> float:
         t_reboiler = column_output_specification.temperature_per_stage[-1]
         t_condenser = column_output_specification.temperature_per_stage[0]
         invest = self._flowsheet.CAL_InvestmentCost(stream_specification.pressure,
-                                                        column_input_specification.n_stages,
-                                                        column_output_specification.condenser_duty,
-                                                        t_reboiler,
-                                                        column_output_specification.reboiler_duty,
-                                                        t_condenser,
-                                                        column_output_specification.vapor_flow_per_stage,
-                                                        column_output_specification.molar_weight_per_stage,
-                                                        column_output_specification.temperature_per_stage)
+                                                    column_input_specification.n_stages,
+                                                    column_output_specification.condenser_duty,
+                                                    t_reboiler,
+                                                    column_output_specification.reboiler_duty,
+                                                    t_condenser,
+                                                    column_output_specification.vapor_flow_per_stage,
+                                                    column_output_specification.molar_weight_per_stage,
+                                                    column_output_specification.temperature_per_stage)
         operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
-                                                              column_output_specification.condenser_duty)
-        # _invest_check = isinstance(invest, float)
-        # _operating_check = isinstance(operating, float)
-        # if _invest_check == False:
-        #     print(f"{invest}")
-        #     print(f"{operating}")
-        #     breakpoint()
-        # elif _operating_check == False:
-        #     print(f"{invest}")
-        #     print(f"{operating}")
-        #     breakpoint()
+                                                             column_output_specification.condenser_duty)
 
         total_cost = invest+operating
 
@@ -146,9 +137,12 @@ class AspenAPI(BaseAspenDistillationAPI):
                                     product_specification: ProductSpecification) -> \
             Tuple[bool, bool]:
         """Checks whether a stream meets the product specification."""
-        is_purity, component_purities = self._flowsheet.CAL_purity_check(
-            stream, product_specification.purity)
         total_flow = sum(stream.molar_flows)
+        if total_flow > 0.001:
+            is_purity, component_purities = self._flowsheet.CAL_purity_check(stream, product_specification.purity)
+        else:
+            is_purity = [0, 0, 0, 0, 0, 0]
+
         if np.any(is_purity):
             is_product = True
             is_outlet = True

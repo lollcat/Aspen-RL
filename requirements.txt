@@ -1,1 +1,4 @@
-dm_env
+dm_acme[jax, tf, envs]
+matplotlib
+pandas
+tqdm
