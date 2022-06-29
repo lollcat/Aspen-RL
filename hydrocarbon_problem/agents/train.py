@@ -118,20 +118,27 @@ if __name__ == '__main__':
     n_iterations = 3
     batch_size = 6
     n_sac_updates_per_episode = 5
+    agent_name = "random"
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
                             product_spec=ProductSpecification(purity=0.95),
                             )
-    sac_net = create_sac_networks(env=env,
-                                  policy_hidden_units=(10, 10),
-                                  q_value_hidden_units=(10, 10))
 
-    agent = create_agent(networks=sac_net,
-                         rng_key=jax.random.PRNGKey(0),
-                         policy_optimizer=optax.adam(1e-4),
-                         q_optimizer=optax.adam(1e-3)
-                         )
+    if agent_name == "SAC":
+        sac_net = create_sac_networks(env=env,
+                                      policy_hidden_units=(10, 10),
+                                      q_value_hidden_units=(10, 10))
+
+        agent = create_agent(networks=sac_net,
+                             rng_key=jax.random.PRNGKey(0),
+                             policy_optimizer=optax.adam(1e-4),
+                             q_optimizer=optax.adam(1e-3)
+                             )
+    else:
+        from hydrocarbon_problem.agents.random_agent.random_agent import create_random_agent
+        assert agent_name == "random"
+        agent = create_random_agent(env)
 
     min_sample_length = batch_size
     max_buffer_length = batch_size*100

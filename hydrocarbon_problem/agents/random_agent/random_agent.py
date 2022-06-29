@@ -11,6 +11,10 @@ class RandomAgentState(NamedTuple):
     counter: chex.Array = jnp.zeros(1)
     params: chex.ArrayTree = ()
 
+class Agent(NamedTuple):
+    select_action: SelectAction
+    update: AgentUpdate
+    state: RandomAgentState
 
 def create_random_agent(env: AspenDistillation) -> Tuple[SelectAction, AgentUpdate]:
     discrete_spec, continuous_spec = env.action_spec()
@@ -34,9 +38,13 @@ def create_random_agent(env: AspenDistillation) -> Tuple[SelectAction, AgentUpda
         and rather just increments a counter."""
         del batch
         agent_state = RandomAgentState(agent_state.counter + 1)
-        info = {"blank": ()}
+        info = {"blank": 0.0}
         return agent_state, info
 
-    return select_action, agent_update
+    init_state = RandomAgentState()
+
+    return Agent(select_action=select_action,
+                 update=agent_update,
+                 state=init_state)
 
 

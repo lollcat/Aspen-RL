@@ -165,7 +165,8 @@ class AspenDistillation(dm_env.Environment):
                                    reward=reward, discount=discount)
 
         self.info["choose_separate"] = choose_separate
-        self.info.update(column_input_spec._asdict())
+        if choose_separate:
+            self.info.update(column_input_spec._asdict())
         return timestep
 
 
