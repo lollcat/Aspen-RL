@@ -14,6 +14,7 @@ class ListLogger(Logger):
     inputs."""
     def __init__(self, save: bool = True, save_path: str = "/tmp/logging_hist.pkl",
                  save_period: int = 100):
+
         self.save = save
         self.save_path = save_path
         if save:

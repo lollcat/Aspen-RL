@@ -10,7 +10,8 @@ class Simulation():
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
         print(os.getcwd())
-        os.chdir('../AspenSimulation')
+        # os.chdir('../AspenSimulation')  # Used absolute path, since I could not get the relative path to work
+        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
         self.AspenSimulation.Visible = VISIBILITY
@@ -28,6 +29,9 @@ class Simulation():
     def BLK_NumberOfStages(self, nstages):
         self.BLK.Elements("B1").Elements("Input").Elements("NSTAGE").Value = nstages
 
+    def BLK_column_internals(self, nstages):
+        self.BLK.Elements("B1").Elements("Input").Elements("CA_STAGE1").Elements("INT-1").Elements("CS-1").Value = 2
+        self.BLK.Elements("B1").Elements("Input").Elements("CA_STAGE2").Elements("INT-1").Elements("CS-1").Value = nstages-1
 
     def BLK_FeedLocation(self, Feed_Location, Feed_Name):
         self.BLK.Elements("B1").Elements("Input").Elements("FEED_STAGE").Elements(Feed_Name).Value = Feed_Location
@@ -85,6 +89,12 @@ class Simulation():
     def BLK_Get_ReboilerRatio(self):
         return self.BLK.Elements("B1").Elements("Input").Elements("BASIS_BR").Value
 
+    def BLK_Get_ReboilerTemperature(self):
+        return self.BLK.Elements("B1").Elements("Output").Elements("BOTTOM_TEMP").Value
+
+    def BLK_Get_CondenserTemperature(self):
+        return self.BLK.Elements("B1").Elements("Output").Elements("TOP_TEMP").Value
+
     def BLK_Get_Condenser_Duty(self):
         condenser_duty = self.BLK.Elements("B1").Elements("Output").Elements("COND_DUTY").Value
         # We overwrite negative values for the reboiler_duty as they don't make sense
@@ -101,23 +111,30 @@ class Simulation():
             reboiler_duty = 0
         return reboiler_duty  # Watt
 
-    def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
-        M = []
-        for i in range(1, N_stages + 1):
-            M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
-        return M  # g/mol
+    # def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
+    #     M = []
+    #     for i in range(1, N_stages + 1):
+    #         M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
+    #     return M  # g/mol
+    #
+    # def BLK_Get_Column_Stage_Temperatures(self, N_stages):
+    #     T = []
+    #     for i in range(1, N_stages + 1):
+    #         T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
+    #     return T  # degree C
+    #
+    # def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
+    #     V = []
+    #     for i in range(1, N_stages + 1):
+    #         V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
+    #     return V  # mol/s
 
-    def BLK_Get_Column_Stage_Temperatures(self, N_stages):
-        T = []
-        for i in range(1, N_stages + 1):
-            T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
-        return T  # degree C
-
-    def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
-        V = []
-        for i in range(1, N_stages + 1):
-            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
-        return V  # mol/s
+    def BLK_get_diameter(self):
+        try:
+            D = self.BLK.Elements("B1").Elements("Output").Elements("CA_DIAM2").Elements("INT-1").Elements("CS-1").Value
+        except AttributeError:
+            D = None
+        return D
 
     def Run(self):
         self.tries = 0
@@ -128,7 +145,7 @@ class Simulation():
 
             # print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
-                           "B1").Elements("Output").Elements("BLKSTAT").Value
+                "B1").Elements("Output").Elements("BLKSTAT").Value
             # print(f"Convergence: {self.converged}")
             if self.converged == 0 or self.converged == 2:
                 break
@@ -136,18 +153,18 @@ class Simulation():
                 time.sleep(1)
                 self.tries += 1
 
-    def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
-        P = pressure
-        f = float(1.6)
-        R = float(8.314)
-        Effective_Diameter = []
-
-        for i in range(0, n_stages - 1):
-            Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-                R * (stage_temp[i] + 273.15) * stage_mw[i] * 1000 / (P * 1e5)))]
-
-        Diameter = 1.1 * max(Effective_Diameter)
-        return Diameter
+    # def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
+    #     P = pressure
+    #     f = float(1.6)
+    #     R = float(8.314)
+    #     Effective_Diameter = []
+    #
+    #     for i in range(0, n_stages - 1):
+    #         Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
+    #             R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
+    #
+    #     Diameter = 1.1 * max(Effective_Diameter)
+    #     return Diameter
 
     def CAL_Column_Height(self, n_stages):
         HETP = 0.5  # HETP constant [m]
@@ -181,11 +198,12 @@ class Simulation():
             A_rbl = reboiler_duty / (K_rbl * delta_tm_rbl)
         return A_rbl
 
-    def CAL_InvestmentCost(self, pressure, n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
-                           tops_temperature, vapor_flows, stage_mw, stage_temp):
+    def CAL_InvestmentCost(self,  n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
+                           tops_temperature, diameter):  # , pressure,vapor_flows, stage_mw, stage_temp):
         # Define in Column Specifications
         L = self.CAL_Column_Height(n_stages)  # Column length [m]
-        D = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
+        # D = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
+        D = diameter
         A_cnd = self.CAL_HT_Condenser_Area(condenser_duty, tops_temperature)  # Heat transfer area of condenser [m2]
         A_rbl = self.CAL_HT_Reboiler_Area(reboiler_temperature, reboiler_duty)  # Heat transfer area of reboiler [m2]
         # Predefined values.
@@ -202,15 +220,25 @@ class Simulation():
         F_int_c = F_int_s + F_int_t + F_int_m
         F_cnd_c = (F_htx_d + F_htx_p) * F_htx_m
         F_rbl_c = (F_htx_d + F_htx_p) * F_htx_m
-        C_col = 0.9 * (M_S / 280) * 937.64 * D ** 1.066 * L ** 0.802 * F_c  # €
-        C_int = 0.9 * (M_S / 280) * 97.24 * D ** 1.55 * L * F_int_c  # €
-        C_cnd = 0.9 * (M_S / 280) * 474.67 * A_cnd ** 0.65 * F_cnd_c  # €
-        C_rbl = 0.9 * (M_S / 280) * 474.67 * A_rbl ** 0.65 * F_rbl_c  # €
-        C_eqp = (C_col + C_int + C_cnd + C_rbl) / 1000  # T€ (x1000=€)
+        if D == None:
+            C_col = 5000000  # €
+            C_int = 5000000  # €
+        else:
+            C_col = 0.9 * (M_S / 280) * 937.64 * D ** 1.066 * L ** 0.802 * F_c  # €
+            C_int = 0.9 * (M_S / 280) * 97.24 * D ** 1.55 * L * F_int_c  # €
+        if A_cnd == 0:
+            C_cnd = 5000000  # €
+        else:
+            C_cnd = 0.9 * (M_S / 280) * 474.67 * A_cnd ** 0.65 * F_cnd_c  # €
+        if A_rbl == 0:
+            C_rbl = 5000000  # €
+        else:
+            C_rbl = 0.9 * (M_S / 280) * 474.67 * A_rbl ** 0.65 * F_rbl_c  # €
+        C_eqp = (C_col + C_int + C_cnd + C_rbl) / 1000000  # M€ (x1000000=€)
         F_cap = 0.2  # Capital charge factor (0.2, fixed)
         F_L = 5  # Lang factor (5, fixed)
         C_inv = F_L * C_eqp
-        InvestmentCost = F_cap * C_inv / 1000  # M€
+        InvestmentCost = F_cap * C_inv  # M€
 
         invest = isinstance(InvestmentCost, float)
         if invest == False:
@@ -260,22 +288,22 @@ class Simulation():
             'n_butane': {'index': 3, 'molar weight': 58.12, 'price': 249.0 * 0.91, 'mass flow': 0, 'stream value': 0},
             'isopentane': {'index': 4, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0},
             'n_pentane': {'index': 5, 'molar weight': 72.15, 'price': 545.0 * 0.91, 'mass flow': 0, 'stream value': 0}
-        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/h, stream value = T€/year
+        }  # molar weight = g/mol, price = $/ton *0.91 (exchange rate @ 24-03-2022), mass flow = ton/year, stream value = T€/year
 
         for entry in component_specifications:
             component_specifications[entry]['mass flow'] = stream_specification.molar_flows[
-                                                           component_specifications[entry]['index']] * \
-                                                       component_specifications[entry][
-                                                           'molar weight'] / 1000 * up_time  # ton/year
+                                                               component_specifications[entry]['index']] * \
+                                                           component_specifications[entry][
+                                                               'molar weight'] / 1000 * up_time  # ton/year
         total_flow = sum(d['mass flow'] for d in component_specifications.values() if d)
 
         for entry in component_specifications:
             if sum(is_purity) > 0:
                 component_specifications[entry]['stream value'] = is_purity[component_specifications[entry]['index']] * \
-                                                              component_specifications[entry]['price'] * \
-                                                              total_flow/1000000  # M€/year
+                                                                  component_specifications[entry]['price'] * \
+                                                                  total_flow/1000000  # M€/year
             elif sum(is_purity) == 0:
-                component_specifications[entry]['stream value'] = 0
+                component_specifications[entry]['stream value'] = 0.0
 
         total_stream_value = sum(d['stream value'] for d in component_specifications.values() if d)
 

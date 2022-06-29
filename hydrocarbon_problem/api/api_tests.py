@@ -36,14 +36,9 @@ def test_api(api: BaseAspenDistillationAPI):
 
     # simulate the column
     start = time.time()
-    time_to_solve, solved = api.solve_flowsheet()
+    api.solve_flowsheet()
     print(time.time() - start)
     # assert solved
-    if solved == False:
-        print("Aspen did not converge")
-        exit()
-    elif solved == True:
-        print("Aspen did converge")
 
     # retrieve values from the flowsheet
     column_output_spec = api.get_simulated_column_properties(fake_column_input_spec)
@@ -57,7 +52,7 @@ def test_api(api: BaseAspenDistillationAPI):
     assert isinstance(tops, StreamSpecification)
     assert isinstance(bottoms, StreamSpecification)
 
-    fake_product_specification = ProductSpecification(purity=0.9)
+    fake_product_specification = ProductSpecification(purity=0.95)
     top_stream_value = api.get_stream_value(tops, fake_product_specification)
     bottom_stream_value = api.get_stream_value(bottoms, fake_product_specification)
 
@@ -83,18 +78,18 @@ def test_api(api: BaseAspenDistillationAPI):
     print(f"Tops: {tops}")
     print(f"Bottoms: {bottoms}")
     print(f"Column output spec: {column_output_spec}")
-    print(f"TAC [k€]: {column_cost}")
-    print(f"Top stream value [k€]: {top_stream_value}")
-    print(f"Bottom stream value [k€]: {bottom_stream_value}")
-    print(f"Revenue [k€]: {revenue}")
+    print(f"TAC [M€]: {column_cost}")
+    print(f"Top stream value [M€]: {top_stream_value}")
+    print(f"Bottom stream value [M€]: {bottom_stream_value}")
+    print(f"Revenue [M€]: {revenue}")
 
 
 if __name__ == '__main__':
     # example run with the fake distillation api
-    from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
-    api = FakeDistillationAPI()
-    test_api(api)
-
-    # from hydrocarbon_problem.api.aspen_api import BaseAspenDistillationAPI, AspenAPI
-    # api = AspenAPI()
+    # from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
+    # api = FakeDistillationAPI()
     # test_api(api)
+
+    from hydrocarbon_problem.api.aspen_api import BaseAspenDistillationAPI, AspenAPI
+    api = AspenAPI()
+    test_api(api)

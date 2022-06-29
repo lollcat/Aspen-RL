@@ -8,7 +8,8 @@ def make_fake_agent(env: AspenDistillation):
     def fake_agent(obs):
         del(obs)
         discrete_spec, continuous_spec = env.action_spec()
-        discrete_action = np.random.randint(0, discrete_spec.num_values, size=())
+        # discrete_action = np.random.randint(0, discrete_spec.num_values, size=())
+        discrete_action = 1
         continuous_action = np.random.uniform(low=continuous_spec.minimum,
                                               high=continuous_spec.maximum,
                                               size=continuous_spec.shape)
@@ -16,7 +17,7 @@ def make_fake_agent(env: AspenDistillation):
     return fake_agent
 
 
-def test(n_episodes: int = 2500, use_fake_api: bool = False):
+def test(n_episodes: int = 2, use_fake_api: bool = False):
     """This test runs multiple environment episodes, running some simple sanity
     checks along the way.
     """
@@ -27,7 +28,7 @@ def test(n_episodes: int = 2500, use_fake_api: bool = False):
     else:
         from hydrocarbon_problem.api.aspen_api import AspenAPI
         api = AspenAPI(max_solve_iterations=100)
-    env = AspenDistillation(flowsheet_api=api)
+    env = AspenDistillation(flowsheet_api=api, max_steps=8)
     agent = make_fake_agent(env)
     simulation_time = []
     episodic_time = []

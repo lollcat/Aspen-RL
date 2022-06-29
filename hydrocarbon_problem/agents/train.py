@@ -6,8 +6,9 @@ import time
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from functools import partial
+import os
 
-# from hydrocarbon_problem.api.aspen_api import AspenAPI
+from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.buffer import ReplayBuffer
@@ -15,6 +16,7 @@ from hydrocarbon_problem.agents.sac.create_networks import create_sac_networks
 from hydrocarbon_problem.env.env import AspenDistillation, ProductSpecification
 from hydrocarbon_problem.agents.base import NextObservation, Transition
 from hydrocarbon_problem.agents.logger import ListLogger, plot_history
+from hydrocarbon_problem.api.Simulation import Simulation
 
 
 
@@ -24,15 +26,19 @@ def train(n_iterations: int,
           buffer: ReplayBuffer,
           key = jax.random.PRNGKey(0),
           n_sac_updates_per_episode: int = 3,
-          batch_size: int = 32
+          batch_size: int = 32,
+          set_agent: str = "random",
           ):
     # initialise the buffer state (filling it with random experience)
     key, subkey = jax.random.split(key)
     buffer_select_action = partial(agent.select_action, agent.state)
     buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
+    print(os.getcwd())
 
-
-    logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist.pkl")
+    if set_agent == "sac":
+        logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist_sac.pkl")
+    elif set_agent == "random":
+        logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist_random_agent.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -79,26 +85,30 @@ def train(n_iterations: int,
         pbar.set_description(f"episode return of {episode_return:.2f}")
 
         # now update the SAC agent
-        sac_start_time = time.time()
-        for j in range(n_sac_updates_per_episode):
-            # sample a batch from the replay buffer
-            key, subkey = jax.random.split(key)
-            batch = buffer.sample(buffer_state, subkey, batch_size)
-            # chex.assert_tree_all_finite(batch)
+        if agent_type == "sac":
+            sac_start_time = time.time()
+            for j in range(n_sac_updates_per_episode):
+                # sample a batch from the replay buffer
+                key, subkey = jax.random.split(key)
+                batch = buffer.sample(buffer_state, subkey, batch_size)
+                # chex.assert_tree_all_finite(batch)
 
-            # update the agent using the sampled batch
-            agent_state, info = agent.update(agent.state, batch)
-            # chex.assert_tree_all_finite(agent_state)
-            agent = agent._replace(state=agent_state)
-            logger.write(info)
+                # update the agent using the sampled batch
+                agent_state, info = agent.update(agent.state, batch)
+                # chex.assert_tree_all_finite(agent_state)
+                agent = agent._replace(state=agent_state)
+                logger.write(info)
 
-        logger.write({"agent_step_time": time.time() - sac_start_time})
+            logger.write({"agent_step_time": time.time() - sac_start_time})
 
     plot_history(logger.history)
     plt.show()
 
 
 if __name__ == '__main__':
+
+    agent_type = "random"
+
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
         from jax.config import config
@@ -108,6 +118,9 @@ if __name__ == '__main__':
         # If we don't want to print warnings.
         # Should be used with care.
         import logging
+        print(os.getcwd())
+        os.chdir("results")
+        print(os.getcwd())
         logger = logging.getLogger("root")
 
         class CheckTypesFilter(logging.Filter):
@@ -116,16 +129,15 @@ if __name__ == '__main__':
         logger.addFilter(CheckTypesFilter())
 
     n_iterations = 3
-    batch_size = 6
+    batch_size = 1
     n_sac_updates_per_episode = 5
-    agent_name = "random"
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
-    env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
+    env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
                             product_spec=ProductSpecification(purity=0.95),
-                            )
+                            max_steps=8)
 
-    if agent_name == "SAC":
+    if agent_type == "sac":
         sac_net = create_sac_networks(env=env,
                                       policy_hidden_units=(10, 10),
                                       q_value_hidden_units=(10, 10))
@@ -137,7 +149,7 @@ if __name__ == '__main__':
                              )
     else:
         from hydrocarbon_problem.agents.random_agent.random_agent import create_random_agent
-        assert agent_name == "random"
+        assert agent_type == "random"
         agent = create_random_agent(env)
 
     min_sample_length = batch_size
@@ -147,5 +159,5 @@ if __name__ == '__main__':
 
     train(
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env,
-        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
+        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode, set_agent=agent_type
           )

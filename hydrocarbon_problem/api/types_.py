@@ -40,11 +40,14 @@ class ColumnInputSpecification(NamedTuple):
 
 class ColumnOutputSpecification(NamedTuple):
     """All relevant output information from the simulated column (besides output stream info)."""
+    condenser_temperature: float
+    reboiler_temperature: float
     condenser_duty: float
     reboiler_duty: float
-    molar_weight_per_stage: Array
-    vapor_flow_per_stage: Array
-    temperature_per_stage: Array
+    diameter: Union[float, None]
+    # molar_weight_per_stage: Array
+    # vapor_flow_per_stage: Array
+    # temperature_per_stage: Array
 
 
 class ProductSpecification(NamedTuple):

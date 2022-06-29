@@ -44,7 +44,7 @@ class AspenDistillation(dm_env.Environment):
                  n_stages_bounds: Tuple[int, int] = (2, 150),
                  pressure_bounds: Tuple[float, float] = (0.01, 50),
                  reflux_ratio_bounds: Tuple[float, float] = (0.01, 20.0),
-                 max_steps: int = 30,
+                 max_steps: int = 8,
                  flowsheet_api: Optional[BaseAspenDistillationAPI] = None):
         self.tops_stream = None
         self.bots_stream = None
