@@ -84,24 +84,26 @@ class AspenAPI(BaseAspenDistillationAPI):
 
         D_Cond_Duty = self._flowsheet.BLK_Get_Condenser_Duty()
         D_Reb_Duty = self._flowsheet.BLK_Get_Reboiler_Duty()
-        diameter = self._flowsheet.BLK_get_diameter()
+        # diameter = self._flowsheet.BLK_get_diameter()
         reboiler_temperature = self._flowsheet.BLK_Get_ReboilerTemperature()
         condenser_temperature = self._flowsheet.BLK_Get_CondenserTemperature()
-        # vap_flows = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows(column_input_specification.n_stages)
-        # stage_temp = self._flowsheet.BLK_Get_Column_Stage_Temperatures(column_input_specification.n_stages)
-        # stage_mw = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights(column_input_specification.n_stages)
+        vap_flows = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows(column_input_specification.n_stages)
+        stage_temp = self._flowsheet.BLK_Get_Column_Stage_Temperatures(column_input_specification.n_stages)
+        stage_mw = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights(column_input_specification.n_stages)
+
+        # D_Specifications = ColumnOutputSpecification(condenser_temperature=condenser_temperature,
+        #                                              reboiler_temperature=reboiler_temperature,
+        #                                              condenser_duty=D_Cond_Duty,
+        #                                              reboiler_duty=D_Reb_Duty,
+        #                                              diameter=diameter)
 
         D_Specifications = ColumnOutputSpecification(condenser_temperature=condenser_temperature,
                                                      reboiler_temperature=reboiler_temperature,
                                                      condenser_duty=D_Cond_Duty,
                                                      reboiler_duty=D_Reb_Duty,
-                                                     diameter=diameter)
-
-        # D_Specifications = ColumnOutputSpecification(condenser_duty=D_Cond_Duty,
-        #                                              reboiler_duty=D_Reb_Duty,
-        #                                              vapor_flow_per_stage=vap_flows,
-        #                                              temperature_per_stage=stage_temp,
-        #                                              molar_weight_per_stage=stage_mw)
+                                                     vapor_flow_per_stage=vap_flows,
+                                                     temperature_per_stage=stage_temp,
+                                                     molar_weight_per_stage=stage_mw)
 
         return D_Specifications
 
@@ -111,7 +113,7 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_Pressure(column_input_specification.condensor_pressure)
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
-        self._flowsheet.BLK_column_internals(column_input_specification.n_stages)
+        # self._flowsheet.BLK_column_internals(column_input_specification.n_stages)
 
     def solve_flowsheet(self) -> None:
         self._flowsheet.Run()
@@ -120,32 +122,33 @@ class AspenAPI(BaseAspenDistillationAPI):
     def get_column_cost(self,
                         stream_specification: StreamSpecification,
                         column_input_specification: ColumnInputSpecification,
-                        column_output_specification: ColumnOutputSpecification) -> float:
+                        column_output_specification: ColumnOutputSpecification) -> Tuple[float, list]:
         t_reboiler = column_output_specification.reboiler_temperature
         t_condenser = column_output_specification.condenser_temperature
 
-        invest = self._flowsheet.CAL_InvestmentCost(n_stages=column_input_specification.n_stages,
+        # invest = self._flowsheet.CAL_InvestmentCost(n_stages=column_input_specification.n_stages,
+        #                                             condenser_duty=column_output_specification.condenser_duty,
+        #                                             reboiler_temperature=t_reboiler,
+        #                                             reboiler_duty=column_output_specification.reboiler_duty,
+        #                                             tops_temperature=t_condenser,
+        #                                             diameter=column_output_specification.diameter)
+
+        invest, col_info = self._flowsheet.CAL_InvestmentCost(n_stages=column_input_specification.n_stages,
                                                     condenser_duty=column_output_specification.condenser_duty,
                                                     reboiler_temperature=t_reboiler,
                                                     reboiler_duty=column_output_specification.reboiler_duty,
                                                     tops_temperature=t_condenser,
-                                                    diameter=column_output_specification.diameter)
+                                                    pressure=stream_specification.pressure,
+                                                    vapor_flows=column_output_specification.vapor_flow_per_stage,
+                                                    stage_mw=column_output_specification.molar_weight_per_stage,
+                                                    stage_temp=column_output_specification.temperature_per_stage)
 
-        # invest = self._flowsheet.CAL_InvestmentCost(stream_specification.pressure,
-        #                                             column_input_specification.n_stages,
-        #                                             column_output_specification.condenser_duty,
-        #                                             t_reboiler,
-        #                                             column_output_specification.reboiler_duty,
-        #                                             t_condenser,
-        #                                             column_output_specification.vapor_flow_per_stage,
-        #                                             column_output_specification.molar_weight_per_stage,
-        #                                             column_output_specification.temperature_per_stage)
         operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
                                                              column_output_specification.condenser_duty)
 
         total_cost = invest+operating
 
-        return total_cost
+        return total_cost, col_info
 
     def get_stream_value(self, stream, product_specification) -> float:
         """Calculates the value (per year) of a stream."""

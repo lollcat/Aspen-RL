@@ -29,6 +29,7 @@ def train(n_iterations: int,
           batch_size: int = 32,
           set_agent: str = "random",
           ):
+
     # initialise the buffer state (filling it with random experience)
     key, subkey = jax.random.split(key)
     buffer_select_action = partial(agent.select_action, agent.state)
@@ -54,7 +55,6 @@ def train(n_iterations: int,
             action = agent.select_action(agent.state, timestep.observation.upcoming_state,
                                          subkey)
             action = np.asarray(action[0]), np.asarray(action[1])
-
             # step the environment
             timestep = env.step(action)
             episode_return += timestep.reward
@@ -107,7 +107,7 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "random"
+    agent_type = "sac"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -128,9 +128,9 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 3
-    batch_size = 1
-    n_sac_updates_per_episode = 5
+    n_iterations = 2000
+    batch_size = 32
+    n_sac_updates_per_episode = 3
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -139,8 +139,8 @@ if __name__ == '__main__':
 
     if agent_type == "sac":
         sac_net = create_sac_networks(env=env,
-                                      policy_hidden_units=(10, 10),
-                                      q_value_hidden_units=(10, 10))
+                                      policy_hidden_units=(32, 32),
+                                      q_value_hidden_units=(32, 32))
 
         agent = create_agent(networks=sac_net,
                              rng_key=jax.random.PRNGKey(0),
@@ -159,5 +159,4 @@ if __name__ == '__main__':
 
     train(
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env,
-        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode, set_agent=agent_type
-          )
+        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode, set_agent=agent_type)

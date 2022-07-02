@@ -44,10 +44,10 @@ class ColumnOutputSpecification(NamedTuple):
     reboiler_temperature: float
     condenser_duty: float
     reboiler_duty: float
-    diameter: Union[float, None]
-    # molar_weight_per_stage: Array
-    # vapor_flow_per_stage: Array
-    # temperature_per_stage: Array
+    # diameter: float
+    molar_weight_per_stage: Array
+    vapor_flow_per_stage: Array
+    temperature_per_stage: Array
 
 
 class ProductSpecification(NamedTuple):

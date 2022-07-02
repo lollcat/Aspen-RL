@@ -119,7 +119,9 @@ class AspenDistillation(dm_env.Environment):
         """The step function of the environment, which takes in an action and returns a
         dm_env.TimeStep object which contains the step_type, reward, discount and observation."""
         self._steps += 1
-        feed_stream = self._stream_table[self._current_stream_number]
+        print(self._current_stream_number)
+        feed_stream = self._stream_table[self._current_stream_number-1]
+        print(feed_stream)
         choose_separate, column_input_spec = self._action_to_column_spec(action)
 
         if choose_separate:
@@ -164,7 +166,6 @@ class AspenDistillation(dm_env.Environment):
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
                                    reward=reward, discount=discount)
 
-        self.info["choose_separate"] = choose_separate
         if choose_separate:
             self.info.update(column_input_spec._asdict())
         return timestep
@@ -217,9 +218,10 @@ class AspenDistillation(dm_env.Environment):
                                       column_output_spec: ColumnOutputSpecification) -> None:
         """Update the stream table, column table, and _stream_numbers_yet_to_be_acted_on objects."""
         for stream in [tops_stream, bottoms_stream]:
-            self._stream_table.append(stream)
+            # self._stream_table.append(stream)
             if not stream.is_outlet:
                 self._stream_numbers_yet_to_be_acted_on.append(stream.number)
+                print(self._stream_numbers_yet_to_be_acted_on)
         column = Column(input_spec=column_input_spec,
                         output_spec=column_output_spec,
                         input_stream_number=self._current_stream_number,
@@ -237,22 +239,30 @@ class AspenDistillation(dm_env.Environment):
     def _get_upcoming_stream(self) -> Stream:
         """For the next action, get a stream from the
         self._stream_numbers_yet_to_be_acted_on list."""
-        try:
+        self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        stream = self._stream_table[self._current_stream_number-1]
+        while stream.is_outlet == True:
             self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
-        except IndexError:
-            print(f"{self._stream_numbers_yet_to_be_acted_on}")
-            breakpoint()
-
-        stream = self._stream_table[self._current_stream_number]
+            stream = self._stream_table[self._current_stream_number]
+        # if stream.is_outlet:
+        #     self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        #     stream = self._stream_table[self._current_stream_number]
+        # if stream.is_outlet:
+        #     self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
+        #     stream = self._stream_table[self._current_stream_number]
         return stream
 
     def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
         """Convert StreamSpecification object into a StreamObject for a recently added stream. This
         function also gives the stream a unique number."""
         is_product, is_outlet = self.flowsheet_api.stream_is_product_or_outlet(stream_spec, self.product_spec)
-        stream_value = self.flowsheet_api.get_stream_value(stream_spec, self.product_spec)
+        if is_product == True:
+            stream_value = self.flowsheet_api.get_stream_value(stream_spec, self.product_spec)
+        if is_product == False:
+            stream_value = 0.0
         stream = Stream(specification=stream_spec, is_product=is_product, is_outlet=is_outlet,
                         value=stream_value, number=len(self._stream_table) + 1)
+        self._stream_table.append(stream)
         return stream
 
     def calculate_reward(self, feed_stream: Stream,
@@ -262,10 +272,13 @@ class AspenDistillation(dm_env.Environment):
                          column_output_spec: ColumnOutputSpecification) -> float:
         """Calculate potential revenue from selling top streams and bottoms streams, and compare
         relative to selling the input stream, subtract TAC and normalise."""
-        total_annual_cost = self.flowsheet_api.get_column_cost(feed_stream.specification,
+        total_annual_cost, col_info = self.flowsheet_api.get_column_cost(feed_stream.specification,
                                                   column_input_specification=column_input_spec,
                                                   column_output_specification=column_output_spec)
         total_annual_revenue = tops_stream.value + bottoms_stream.value
+        self.info["Revenue"] = total_annual_revenue
+        self.info["Diameter"] = col_info[0]
+        self.info["Height"] = col_info[1]
         return total_annual_revenue - total_annual_cost
 
 
