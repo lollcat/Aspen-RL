@@ -5,7 +5,7 @@ from hydrocarbon_problem.agents.logger import plot_history
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    agent = "random"
+    agent = "sac"
 
     now = datetime.now()
     current_time = now.strftime("%H_%M_%S")
@@ -14,14 +14,14 @@ if __name__ == '__main__':
 
     if agent == "sac":
         os.chdir("../results/SAC")
-        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_sac.pkl"  # path to where history was saved
+        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_sac_5000_debug_2022-07-07_09_41.pkl"  # path to where history was saved
     elif agent == "random":
         os.chdir("../results/Random")
         path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_random_agent.pkl"
         # "../results/logging_hist_random_agent.pkl"
     hist = pickle.load(open(path_to_saved_hist, "rb"))
     plot_history(hist)
-    plt.savefig(f'logger_{agent}_episodes-2000_{today}_{current_time}.pdf')
+    plt.savefig(f'logger_{agent}_episodes-5000_{today}_{current_time}.pdf')
     plt.show()
 
     # print(os.getcwd())

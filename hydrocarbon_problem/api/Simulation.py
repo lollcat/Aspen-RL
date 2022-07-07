@@ -1,6 +1,8 @@
-import datetime
 import os
 import win32com.client as win32
+import win32api
+import pywintypes
+
 import numpy as np
 import time
 
@@ -100,7 +102,7 @@ class Simulation():
         condenser_duty = self.BLK.Elements("B1").Elements("Output").Elements("COND_DUTY").Value
         # We overwrite negative values for the reboiler_duty as they don't make sense
         # (to be looked into further in the future).
-        if condenser_duty > 0:
+        if condenser_duty >= 0:
             condenser_duty = 0
         return condenser_duty  # Watt
 
@@ -108,48 +110,87 @@ class Simulation():
         reboiler_duty = self.BLK.Elements("B1").Elements("Output").Elements("REB_DUTY").Value
         # We overwrite negative values for the reboiler_duty as they don't make sense
         # (to be looked into further in the future).
-        if reboiler_duty < 0:
+        if reboiler_duty <= 0:
             reboiler_duty = 0
         return reboiler_duty  # Watt
 
-    def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
-        M = []
-        for i in range(1, N_stages + 1):
-            M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
-        return M  # g/mol
+    # def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
+    #     M = []
+    #     for i in range(1, N_stages + 1):
+    #         M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
+    #     return M  # g/mol
+    #
+    # def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
+    #     V=[]
+    #     for i in range(1, N_stages + 1):
+    #         V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
+    #     return V  # mol/s
+    #
+    # def BLK_Get_Column_Stage_Temperatures(self, N_stages):
+    #     T = []
+    #     for i in range(1, N_stages + 1):
+    #         T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
+    #     return T  # degree C
 
-    def BLK_Get_Column_Stage_Temperatures(self, N_stages):
-        T = []
-        for i in range(1, N_stages + 1):
-            T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
-        return T  # degree C
-
-    def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
+    def BLK_Get_Column_Stage_Vapor_Flows_Short(self, N_stages, feed_stage):
         V = []
-        for i in range(1, N_stages + 1):
-            V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
+        if feed_stage == N_stages:
+            V = [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(2).Value * 1000,
+                 self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(N_stages-1)).Value * 1000,
+                 self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(N_stages - 1)).Value * 1000]
+        elif feed_stage != N_stages:
+            V = [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(2).Value * 1000,
+                 self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(feed_stage)).Value * 1000,
+                 self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(N_stages - 1)).Value * 1000]
         return V  # mol/s
 
-    # def BLK_get_diameter(self):
-    #     if self.converged == 0 or self.converged == 2:
-    #         try:
-    #             D = self.BLK.Elements("B1").Elements("Output").Elements("CA_DIAM2").Elements("INT-1").Elements("CS-1").Value
-    #         except AttributeError:
-    #             print("No entry")
-    #             breakpoint()
-    #     else:
-    #         D = None
-    #     self.info['Diameter'] = D
-    #     return D
+    def BLK_Get_Column_Stage_Molar_Weights_Short(self, N_stages, feed_stage):
+        M = []
+        if feed_stage == N_stages:
+            M = [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(2).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages-1)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages-1)).Value]
+            # index = [i for i, v in enumerate(M) if v==None]
+            # if len(index) > 0:
+            #     for r in range(index):
+            #         M[r] = 0.0
+        elif feed_stage != N_stages:
+            M = [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(2).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(feed_stage)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages - 1)).Value]
+            # index = [i for i, v in enumerate(M) if v == None]
+            # if len(index) > 0:
+            #     for r in range(index):
+            #         M[r] = 0.0
+        return M  # g/mol
+
+    def BLK_Get_Column_Stage_Temperatures_Short(self, Nstages, feed_stage):
+        T = []
+        if feed_stage == Nstages:
+            T = [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(2)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(Nstages-1)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(Nstages-1)).Value]
+        elif feed_stage != Nstages:
+            T = [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(2)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(feed_stage)).Value,
+                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(Nstages - 1)).Value]
+        return T  # degree C
 
     def Run(self):
         self.tries = 0
         while self.tries != 2:
             start = time.time()
-
-            self.AspenSimulation.Engine.Run2()
-
+            try:
+                self.AspenSimulation.Engine.Run2()
+            # """"Implement com_error exception, when encountered try self.AspenSimulation.Reinit()"""
+            except pywintypes.com_error:  # pywintypes.com_error as error:
+                print("No contact")
+                self.AspenSimulation.Reinit()
+                self.AspenSimulation.Engine.Run2()
+                print("Ran for 2nd time")
+                # print(error)
             self.duration = time.time() - start
+            # self.AspenSimulation.WriteArchive2(self, )
 
             # print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
@@ -164,13 +205,29 @@ class Simulation():
                     print("Unconverged")
             self.info['Convergence'] = self.converged
 
-    def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
+    # def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
+    #     P = pressure
+    #     f = float(1.6)
+    #     R = float(8.314)
+    #     Effective_Diameter = []
+    #
+    #     for i in range(0, n_stages - 1):
+    #         Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
+    #             R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
+    #
+    #     Diameter = 1.1 * max(Effective_Diameter)
+    #     return Diameter
+
+    def CAL_Column_Diameter_short(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp, feed_stage):
         P = pressure
         f = float(1.6)
         R = float(8.314)
+        # V = [vapor_flows[0], vapor_flows[1], vapor_flows[-1]]
+        # MW = [stage_mw[0], stage_mw[1], stage_mw[-1]]
+        # T = [stage_temp[0], stage_temp[1], stage_temp[-1]]
         Effective_Diameter = []
 
-        for i in range(0, n_stages - 1):
+        for i in range(0, len(vapor_flows)):
             Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
                 R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
 
@@ -185,15 +242,18 @@ class Simulation():
     def CAL_LMTD(self, tops_temperature):
         T_cool_in = 30  # Supply temperature of cooling water [oC]
         T_cool_out = 40  # Return temperature of cooling water [oC]
-        delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
+        if tops_temperature > T_cool_out:
+            delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
                 (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
-        return delta_Tm_cnd.real
+        else:
+            delta_Tm_cnd = 0
+        return delta_Tm_cnd
 
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
         delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
-        Tm_type = isinstance(delta_Tm_cnd, float)
-        if Tm_type == True:
+        # Tm_type = isinstance(delta_Tm_cnd, float)
+        if delta_Tm_cnd > 0:
             A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
         else:
             A_cnd = 0
@@ -210,11 +270,21 @@ class Simulation():
         return A_rbl
 
     def CAL_InvestmentCost(self,  n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
-                           tops_temperature, pressure, vapor_flows, stage_mw, stage_temp):  # diameter
+                           tops_temperature, pressure, vapor_flows, stage_mw, stage_temp,
+                           feed_stage):  # diameter
         # Define in Column Specifications
         L = self.CAL_Column_Height(n_stages)  # Column length [m]
-        D = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
-        # D = diameter
+        # print(f"n_stages = {n_stages}")
+        # start_full = time.time()
+        # D_full = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
+        # duration_full = time.time() - start_full
+        # print(f"Duration_full = {duration_full}")
+        # print(f"Diameter_full {D_full}")
+        # start_short = time.time()
+        D_short = self.CAL_Column_Diameter_short(pressure, n_stages, vapor_flows, stage_mw, stage_temp, feed_stage)
+        # duration_short = time.time() - start_short
+        # print(f"Duration_short = {duration_short}")
+        # print(f"Diameter short {D_short}")
         A_cnd = self.CAL_HT_Condenser_Area(condenser_duty, tops_temperature)  # Heat transfer area of condenser [m2]
         A_rbl = self.CAL_HT_Reboiler_Area(reboiler_temperature, reboiler_duty)  # Heat transfer area of reboiler [m2]
         # Predefined values.
@@ -235,8 +305,8 @@ class Simulation():
             C_col = 5  # M€
             C_int = 5  # M€
         else:
-            C_col = 0.9 * (M_S / 280) * 937.64 * D ** 1.066 * L ** 0.802 * F_c / 1000000  # M€
-            C_int = 0.9 * (M_S / 280) * 97.24 * D ** 1.55 * L * F_int_c / 1000000  # M€
+            C_col = 0.9 * (M_S / 280) * 937.64 * D_short ** 1.066 * L ** 0.802 * F_c / 1000000  # M€
+            C_int = 0.9 * (M_S / 280) * 97.24 * D_short ** 1.55 * L * F_int_c / 1000000  # M€
         if A_cnd == 0:
             C_cnd = 5  # €
         else:
@@ -252,9 +322,9 @@ class Simulation():
         InvestmentCost = F_cap * C_inv  # M€
 
         invest = isinstance(InvestmentCost, float)
-        if InvestmentCost > 0:
+        if invest == False:
             print(f"Length column: {L}")
-            print(f"Diameter column: {D}")
+            print(f"Diameter column: {D_short}")
             print(f"Condenser area: {A_cnd}")
             print(f"Reboiler area: {A_rbl}")
             print(f"Cost column: {C_col}")
@@ -265,7 +335,7 @@ class Simulation():
             print(f"C_inv: {C_inv}")
             print(f"InvestmentCost: {InvestmentCost}")
             # breakpoint()
-        column_info = [L,D]
+        column_info = [L,D_short]
 
         return InvestmentCost, column_info
 

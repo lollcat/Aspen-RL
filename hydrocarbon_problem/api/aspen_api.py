@@ -1,5 +1,6 @@
 from typing import Tuple
 import numpy as np
+import time
 # from sqlalchemy import column
 from hydrocarbon_problem.api.Simulation import Simulation
 
@@ -11,7 +12,7 @@ from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpeci
 class AspenAPI(BaseAspenDistillationAPI):
     def __init__(self, max_solve_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
-        self._flowsheet: Simulation = Simulation(VISIBILITY=True,
+        self._flowsheet: Simulation = Simulation(VISIBILITY=False,
                                                  SUPPRESS= True,
                                                  max_iterations=max_solve_iterations,
                                                  flowsheet_path=flowsheet_path)
@@ -24,6 +25,7 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                        n_butane="N-BUTANE",
                                                        isopentane="I-PENTAN",
                                                        n_pentane="N-PENTAN")
+        self.info = {}
         
     def set_input_stream_specification(self, stream_specification: StreamSpecification) -> None:
         """Sets the input stream to a column to fit the stream specification"""
@@ -87,10 +89,24 @@ class AspenAPI(BaseAspenDistillationAPI):
         # diameter = self._flowsheet.BLK_get_diameter()
         reboiler_temperature = self._flowsheet.BLK_Get_ReboilerTemperature()
         condenser_temperature = self._flowsheet.BLK_Get_CondenserTemperature()
-        vap_flows = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows(column_input_specification.n_stages)
-        stage_temp = self._flowsheet.BLK_Get_Column_Stage_Temperatures(column_input_specification.n_stages)
-        stage_mw = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights(column_input_specification.n_stages)
 
+        # start_per_stage_data = time.time()
+        # vap_flows = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows(N_stages=column_input_specification.n_stages)
+        # stage_temp = self._flowsheet.BLK_Get_Column_Stage_Temperatures(N_stages=column_input_specification.n_stages)
+        # stage_mw = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights(N_stages=column_input_specification.n_stages)
+        # duration_per_stage_data = time.time() - start_per_stage_data
+        # print(f"Duration per stage data = {duration_per_stage_data}")
+
+        # start_top_feed_bots_stage_data = time.time()
+        vap_flows_short = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows_Short(N_stages=column_input_specification.n_stages,
+                                                                                 feed_stage=column_input_specification.feed_stage_location)
+        stage_temp_short = self._flowsheet.BLK_Get_Column_Stage_Temperatures_Short(Nstages=column_input_specification.n_stages,
+                                                                             feed_stage=column_input_specification.feed_stage_location)
+        stage_mw_short = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights_Short(N_stages=column_input_specification.n_stages,
+                                                                                  feed_stage=column_input_specification.feed_stage_location)
+
+        # duration_top_feed_bots_stage_data = time.time() - start_top_feed_bots_stage_data
+        # print(f"Duration per stage data = {duration_top_feed_bots_stage_data}")
         # D_Specifications = ColumnOutputSpecification(condenser_temperature=condenser_temperature,
         #                                              reboiler_temperature=reboiler_temperature,
         #                                              condenser_duty=D_Cond_Duty,
@@ -101,13 +117,16 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                      reboiler_temperature=reboiler_temperature,
                                                      condenser_duty=D_Cond_Duty,
                                                      reboiler_duty=D_Reb_Duty,
-                                                     vapor_flow_per_stage=vap_flows,
-                                                     temperature_per_stage=stage_temp,
-                                                     molar_weight_per_stage=stage_mw)
+                                                     vapor_flow_per_stage=vap_flows_short,
+                                                     temperature_per_stage=stage_temp_short,
+                                                     molar_weight_per_stage=stage_mw_short)
 
         return D_Specifications
 
     def set_column_specification(self, column_input_specification: ColumnInputSpecification) -> None:
+        if column_input_specification.feed_stage_location > column_input_specification.n_stages:
+            print(f"n_stages: {column_input_specification.n_stages}, feed stage: {column_input_specification.feed_stage_location}")
+
         self._flowsheet.BLK_NumberOfStages(column_input_specification.n_stages)
         self._flowsheet.BLK_FeedLocation(column_input_specification.feed_stage_location, "S1")
         self._flowsheet.BLK_Pressure(column_input_specification.condensor_pressure)
@@ -133,15 +152,17 @@ class AspenAPI(BaseAspenDistillationAPI):
         #                                             tops_temperature=t_condenser,
         #                                             diameter=column_output_specification.diameter)
 
-        invest, col_info = self._flowsheet.CAL_InvestmentCost(n_stages=column_input_specification.n_stages,
-                                                    condenser_duty=column_output_specification.condenser_duty,
-                                                    reboiler_temperature=t_reboiler,
-                                                    reboiler_duty=column_output_specification.reboiler_duty,
-                                                    tops_temperature=t_condenser,
-                                                    pressure=stream_specification.pressure,
-                                                    vapor_flows=column_output_specification.vapor_flow_per_stage,
-                                                    stage_mw=column_output_specification.molar_weight_per_stage,
-                                                    stage_temp=column_output_specification.temperature_per_stage)
+        invest, col_info = self._flowsheet.CAL_InvestmentCost(
+            n_stages=column_input_specification.n_stages,
+            condenser_duty=column_output_specification.condenser_duty,
+            reboiler_temperature=t_reboiler,
+            reboiler_duty=column_output_specification.reboiler_duty,
+            tops_temperature=t_condenser,
+            pressure=stream_specification.pressure,
+            vapor_flows=column_output_specification.vapor_flow_per_stage,
+            stage_mw=column_output_specification.molar_weight_per_stage,
+            stage_temp=column_output_specification.temperature_per_stage,
+            feed_stage=column_input_specification.feed_stage_location)
 
         operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
                                                              column_output_specification.condenser_duty)

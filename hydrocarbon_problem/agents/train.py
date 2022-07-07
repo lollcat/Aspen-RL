@@ -37,7 +37,8 @@ def train(n_iterations: int,
     print(os.getcwd())
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist_sac.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/logging_hist_sac_5000_debug_2022-07-07_"
+                                                                f"09_41.pkl")
     elif set_agent == "random":
         logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist_random_agent.pkl")
 
@@ -128,7 +129,7 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 2000
+    n_iterations = 5000
     batch_size = 32
     n_sac_updates_per_episode = 3
 
