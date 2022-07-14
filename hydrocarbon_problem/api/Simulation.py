@@ -1,21 +1,29 @@
 import os
 import win32com.client as win32
-import win32api
+import psutil
 import pywintypes
 
 import numpy as np
 import time
+from datetime import datetime
+
 
 class Simulation():
-    AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
 
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
+        self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         print(os.getcwd())
         # os.chdir('../AspenSimulation')  # Used absolute path, since I could not get the relative path to work
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
+        # self.now = datetime.now()
+        # self.current_time = self.now.strftime("%H:%M:%S")
+        # print(self.current_time)
+        # self.aspen_list = []
+        # self.check_aspen_pid("AspenPlus")
+
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = SUPPRESS
         self.max_iterations = max_iterations
@@ -23,7 +31,15 @@ class Simulation():
         self.duration = 0
         self.converged = False
         self.tries = 0
+        self.pywin_error = False
         self.info = {}
+
+    # def check_aspen_pid(self, process_name):
+    #     procObjList = [procObj for procObj in psutil.process_iter() if 'AspenPlus' in procObj.name()]
+    #     print(procObjList)
+    #     # for elem in procObjList:
+    #     #     pid_list.
+    #     #     print(elem)
 
     @property
     def BLK(self):
@@ -167,9 +183,7 @@ class Simulation():
     def BLK_Get_Column_Stage_Temperatures_Short(self, Nstages, feed_stage):
         T = []
         if feed_stage == Nstages:
-            T = [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(2)).Value,
-                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(Nstages-1)).Value,
-                 self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(Nstages-1)).Value]
+            raise Exception("Agent should never pick nstages as feed location")
         elif feed_stage != Nstages:
             T = [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(2)).Value,
                  self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(feed_stage)).Value,
@@ -184,47 +198,44 @@ class Simulation():
                 self.AspenSimulation.Engine.Run2()
             # """"Implement com_error exception, when encountered try self.AspenSimulation.Reinit()"""
             except pywintypes.com_error:  # pywintypes.com_error as error:
-                print("No contact")
-                self.AspenSimulation.Reinit()
-                self.AspenSimulation.Engine.Run2()
-                print("Ran for 2nd time")
-                # print(error)
+                print("No contact, pywintypes.com_error")
+                self.pywin_error = True
+                break
             self.duration = time.time() - start
-            # self.AspenSimulation.WriteArchive2(self, )
-
-            # print(f"Run = {self.duration}")
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
                 "B1").Elements("Output").Elements("BLKSTAT").Value
-            # print(f"Convergence: {self.converged}")
             if self.converged == 0 or self.converged == 2:
                 break
             else:
                 time.sleep(1)
                 self.tries += 1
-                if self.tries == 1:
-                    print("Unconverged")
             self.info['Convergence'] = self.converged
 
-    # def CAL_Column_Diameter(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp):
-    #     P = pressure
-    #     f = float(1.6)
-    #     R = float(8.314)
-    #     Effective_Diameter = []
-    #
-    #     for i in range(0, n_stages - 1):
-    #         Effective_Diameter += [np.sqrt((4 * vapor_flows[i]) / (3.1416 * f) * np.sqrt(
-    #             R * (stage_temp[i] + 273.15) * stage_mw[i] / 1000 / (P * 1e5)))]
-    #
-    #     Diameter = 1.1 * max(Effective_Diameter)
-    #     return Diameter
+    def restart(self, visibility, suppress, max_iterations):
+        x = win32.Dispatch("Apwn.Document")
+        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
+        print(os.getcwd())
+        x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        x.Visible = visibility
+        x.SuppressDialogs = suppress
+        self.AspenSimulation.Close()
+        # os.system("taskkill /f /im AspenPlus.exe")
+        del self.AspenSimulation
+        self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
+        print(os.getcwd())
+        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
+        print(os.getcwd())
+        self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        self.AspenSimulation.Visible = False
+        self.AspenSimulation.SuppressDialogs = True
+        self.max_iterations = max_iterations
+        self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        print("Aspen has been restarted")
 
     def CAL_Column_Diameter_short(self, pressure, n_stages, vapor_flows, stage_mw, stage_temp, feed_stage):
         P = pressure
         f = float(1.6)
         R = float(8.314)
-        # V = [vapor_flows[0], vapor_flows[1], vapor_flows[-1]]
-        # MW = [stage_mw[0], stage_mw[1], stage_mw[-1]]
-        # T = [stage_temp[0], stage_temp[1], stage_temp[-1]]
         Effective_Diameter = []
 
         for i in range(0, len(vapor_flows)):
@@ -274,17 +285,7 @@ class Simulation():
                            feed_stage):  # diameter
         # Define in Column Specifications
         L = self.CAL_Column_Height(n_stages)  # Column length [m]
-        # print(f"n_stages = {n_stages}")
-        # start_full = time.time()
-        # D_full = self.CAL_Column_Diameter(pressure, n_stages, vapor_flows, stage_mw, stage_temp)  # Column diameter [m]
-        # duration_full = time.time() - start_full
-        # print(f"Duration_full = {duration_full}")
-        # print(f"Diameter_full {D_full}")
-        # start_short = time.time()
-        D_short = self.CAL_Column_Diameter_short(pressure, n_stages, vapor_flows, stage_mw, stage_temp, feed_stage)
-        # duration_short = time.time() - start_short
-        # print(f"Duration_short = {duration_short}")
-        # print(f"Diameter short {D_short}")
+        D = self.CAL_Column_Diameter_short(pressure, n_stages, vapor_flows, stage_mw, stage_temp, feed_stage)
         A_cnd = self.CAL_HT_Condenser_Area(condenser_duty, tops_temperature)  # Heat transfer area of condenser [m2]
         A_rbl = self.CAL_HT_Reboiler_Area(reboiler_temperature, reboiler_duty)  # Heat transfer area of reboiler [m2]
         # Predefined values.
@@ -305,8 +306,8 @@ class Simulation():
             C_col = 5  # M€
             C_int = 5  # M€
         else:
-            C_col = 0.9 * (M_S / 280) * 937.64 * D_short ** 1.066 * L ** 0.802 * F_c / 1000000  # M€
-            C_int = 0.9 * (M_S / 280) * 97.24 * D_short ** 1.55 * L * F_int_c / 1000000  # M€
+            C_col = 0.9 * (M_S / 280) * 937.64 * D ** 1.066 * L ** 0.802 * F_c / 1000000  # M€
+            C_int = 0.9 * (M_S / 280) * 97.24 * D ** 1.55 * L * F_int_c / 1000000  # M€
         if A_cnd == 0:
             C_cnd = 5  # €
         else:
@@ -324,7 +325,7 @@ class Simulation():
         invest = isinstance(InvestmentCost, float)
         if invest == False:
             print(f"Length column: {L}")
-            print(f"Diameter column: {D_short}")
+            print(f"Diameter column: {D}")
             print(f"Condenser area: {A_cnd}")
             print(f"Reboiler area: {A_rbl}")
             print(f"Cost column: {C_col}")
@@ -334,8 +335,8 @@ class Simulation():
             print(f"Cost equipment: {C_eqp}")
             print(f"C_inv: {C_inv}")
             print(f"InvestmentCost: {InvestmentCost}")
-            # breakpoint()
-        column_info = [L,D_short]
+
+        column_info = [L, D]
 
         return InvestmentCost, column_info
 

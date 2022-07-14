@@ -88,6 +88,7 @@ class ReplayBuffer:
                 transition = jax.tree_map(jnp.asarray, transition)
                 buffer_state = self.add(transition, buffer_state)
                 previous_timestep = timestep
+                print("Added to buffer")
         return buffer_state
 
     @partial(jax.jit, static_argnums=0)

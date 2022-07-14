@@ -14,15 +14,32 @@ if __name__ == '__main__':
 
     if agent == "sac":
         os.chdir("../results/SAC")
-        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_sac_5000_debug_2022-07-07_09_41.pkl"  # path to where history was saved
+        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation" \
+                             "/results/2022-07-14-20-32-06_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64.pkl"  # path to where history was saved
     elif agent == "random":
         os.chdir("../results/Random")
         path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_random_agent.pkl"
         # "../results/logging_hist_random_agent.pkl"
     hist = pickle.load(open(path_to_saved_hist, "rb"))
-    plot_history(hist)
-    plt.savefig(f'logger_{agent}_episodes-5000_{today}_{current_time}.pdf')
+
+    hist_keys = list(hist.keys())
+    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[3:]}
+    col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:3]}
+
+    plot_history(agent_spec)
+    plt.savefig(f'blob.pdf')
     plt.show()
+
+    """Index for episode with heighest profit"""
+    episodic_returns = agent_spec.get("episode_return")
+    max_return = max(episodic_returns)
+    index_max_return = episodic_returns.index(max_return)  # Episode with the highest return
+
+    
+
+    # plot_history(hist)
+    # plt.savefig(f'2022-07-14-20-32-06_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64.pdf')
+    # plt.show()
 
     # print(os.getcwd())
     # os.chdir("../results")

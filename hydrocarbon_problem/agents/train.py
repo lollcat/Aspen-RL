@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from functools import partial
 import os
+from datetime import datetime, date
 
 from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
@@ -34,13 +35,17 @@ def train(n_iterations: int,
     key, subkey = jax.random.split(key)
     buffer_select_action = partial(agent.select_action, agent.state)
     buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
-    print(os.getcwd())
+
+
+    today = date.today()
+    current_time = datetime.now()
+    current_time = current_time.strftime("%H-%M-%S")
+    today = today.strftime("%Y-%m-%d")
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/logging_hist_sac_5000_debug_2022-07-07_"
-                                                                f"09_41.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_DDPG_{n_iterations}_scaled_reward_batch_and_NN_64.pkl")
     elif set_agent == "random":
-        logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist_random_agent.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -58,6 +63,7 @@ def train(n_iterations: int,
             action = np.asarray(action[0]), np.asarray(action[1])
             # step the environment
             timestep = env.step(action)
+
             episode_return += timestep.reward
 
             # add to the buffer
@@ -76,6 +82,10 @@ def train(n_iterations: int,
             previous_timestep = timestep
 
             step_metrics = env.info
+
+            step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
+            step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
+            step_metrics["Column"] = step_metrics["Column"]._replace(episode=i)
             logger.write(step_metrics)
 
         # save useful metrics
@@ -101,6 +111,9 @@ def train(n_iterations: int,
                 logger.write(info)
 
             logger.write({"agent_step_time": time.time() - sac_start_time})
+        if (i % 100) == 0:
+            print("100 episodes passed, restart Aspen")
+            env.flowsheet_api.restart_aspen()
 
     plot_history(logger.history)
     plt.show()
@@ -129,9 +142,9 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 5000
+    n_iterations = 3000
     batch_size = 32
-    n_sac_updates_per_episode = 3
+    n_sac_updates_per_episode = 1
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -141,20 +154,20 @@ if __name__ == '__main__':
     if agent_type == "sac":
         sac_net = create_sac_networks(env=env,
                                       policy_hidden_units=(32, 32),
-                                      q_value_hidden_units=(32, 32))
+                                      q_value_hidden_units=(64, 64))
 
         agent = create_agent(networks=sac_net,
                              rng_key=jax.random.PRNGKey(0),
-                             policy_optimizer=optax.adam(1e-4),
-                             q_optimizer=optax.adam(1e-3)
+                             policy_optimizer=optax.adam(5e-5),
+                             q_optimizer=optax.adam(5e-5)
                              )
     else:
         from hydrocarbon_problem.agents.random_agent.random_agent import create_random_agent
         assert agent_type == "random"
         agent = create_random_agent(env)
 
-    min_sample_length = batch_size
-    max_buffer_length = batch_size*100
+    min_sample_length = batch_size * 1#0
+    max_buffer_length = batch_size*10#0000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 

@@ -20,9 +20,11 @@ class Done(NamedTuple):
     # separated.
     overall: bool  # the whole env loop is done
 
+
 class Discount(NamedTuple):
     created_states: Tuple[np.ndarray, np.ndarray]
     overall: np.ndarray
+
 
 class Stream(NamedTuple):
     """Defines stream type, which are managed within the stream table."""
@@ -31,6 +33,7 @@ class Stream(NamedTuple):
     is_outlet: bool
     number: int
     value: float
+    episode: int
 
 
 class Column(NamedTuple):
@@ -39,3 +42,4 @@ class Column(NamedTuple):
     input_stream_number: int
     tops_stream_number: int
     bottoms_stream_number: int
+    episode: int

@@ -42,7 +42,7 @@ class AspenDistillation(dm_env.Environment):
     def __init__(self,
                  initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC,
                  product_spec: ProductSpecification = ProductSpecification(purity=0.95),
-                 n_stages_bounds: Tuple[int, int] = (4, 150),
+                 n_stages_bounds: Tuple[int, int] = (3, 150),
                  pressure_bounds: Tuple[float, float] = (0.01, 50),
                  reflux_ratio_bounds: Tuple[float, float] = (0.01, 20.0),
                  max_steps: int = 8,
@@ -59,7 +59,8 @@ class AspenDistillation(dm_env.Environment):
         self._initial_feed = Stream(specification=initial_feed_spec,
                                     is_outlet=False,
                                     is_product=False, number=0,
-                                    value=0.0)
+                                    value=0.0,
+                                    episode=0)
         self._max_n_steps = max_steps  # Maximum number of environment steps.
 
         # Initialise stream and column tables.
@@ -120,15 +121,14 @@ class AspenDistillation(dm_env.Environment):
         """The step function of the environment, which takes in an action and returns a
         dm_env.TimeStep object which contains the step_type, reward, discount and observation."""
         self._steps += 1
-        # print(self._current_stream_number)
         feed_stream = self._stream_table[self._current_stream_number-1]
-        # print(feed_stream)
         choose_separate, column_input_spec = self._action_to_column_spec(action)
 
-        if choose_separate:
-            self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
-            self.flowsheet_api.set_column_specification(column_input_spec)
-            self.flowsheet_api.solve_flowsheet()
+
+        self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
+        self.flowsheet_api.set_column_specification(column_input_spec)
+        contact = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
+        if contact == True:
             self.tops_stream, self.bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
             self._manage_environment_internals(self.tops_stream, self.bottoms_stream, column_input_spec,
@@ -165,9 +165,7 @@ class AspenDistillation(dm_env.Environment):
                         np.array(1-done.overall))
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
-                                   reward=reward, discount=discount)
-
-        # self.info["flowsheet_info"] = Simulation
+                                   reward=reward/1000, discount=discount)  # reward B€
 
         if choose_separate:
             self.info.update(column_input_spec._asdict())
@@ -191,7 +189,7 @@ class AspenDistillation(dm_env.Environment):
         if choose_seperate:
             n_stages = round(np.interp(continuous_action[0], [-1, 1], self._n_stages_bounds) + 0.5)
             # feed as fraction between stage 0 and n_stages
-            feed_stage_location = round(np.interp(continuous_action[1], [-1, 1], [0, n_stages]) + 0.5)  # + 0.5
+            feed_stage_location = round(np.interp(continuous_action[1], [-1, 1], [2, n_stages-1]))  # + 0.5
             reflux_ratio = np.interp(continuous_action[2], [-1, 1], self._reflux_ratio_bounds)
             reboil_ratio = np.interp(continuous_action[3], [-1, 1], self._reflux_ratio_bounds)
             condensor_pressure = np.interp(continuous_action[4], [-1, 1], self._pressure_bounds)
@@ -212,7 +210,8 @@ class AspenDistillation(dm_env.Environment):
         tops_stream = self._stream_specification_to_stream(tops_stream_spec)
         bottoms_stream = self._stream_specification_to_stream(bottoms_stream_spec)
         column_output_spec = self.flowsheet_api.get_simulated_column_properties(column_input_specification)
-        # column_output_spec = self.flowsheet_api.get_simulated_column_properties(column_input_spec=column_input_specification)
+        self.info["TopStream"] = tops_stream
+        self.info["BottomStream"] = bottoms_stream
         return tops_stream, bottoms_stream, column_output_spec
 
     def _manage_environment_internals(self, tops_stream: Stream,
@@ -221,17 +220,17 @@ class AspenDistillation(dm_env.Environment):
                                       column_output_spec: ColumnOutputSpecification) -> None:
         """Update the stream table, column table, and _stream_numbers_yet_to_be_acted_on objects."""
         for stream in [tops_stream, bottoms_stream]:
-            # self._stream_table.append(stream)
             if not stream.is_outlet:
                 self._stream_numbers_yet_to_be_acted_on.append(stream.number)
-                # print(self._stream_numbers_yet_to_be_acted_on)
         column = Column(input_spec=column_input_spec,
                         output_spec=column_output_spec,
                         input_stream_number=self._current_stream_number,
                         tops_stream_number=tops_stream.number,
-                        bottoms_stream_number=bottoms_stream.number
+                        bottoms_stream_number=bottoms_stream.number,
+                        episode=0
                         )
         self._column_table.append(column)
+        self.info["Column"] = column
 
 
     def _manage_environment_internals_no_act(self):
@@ -247,12 +246,6 @@ class AspenDistillation(dm_env.Environment):
         while stream.is_outlet == True:
             self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
             stream = self._stream_table[self._current_stream_number]
-        # if stream.is_outlet:
-        #     self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
-        #     stream = self._stream_table[self._current_stream_number]
-        # if stream.is_outlet:
-        #     self._current_stream_number = self._stream_numbers_yet_to_be_acted_on.pop()
-        #     stream = self._stream_table[self._current_stream_number]
         return stream
 
     def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
@@ -264,7 +257,7 @@ class AspenDistillation(dm_env.Environment):
         if is_product == False:
             stream_value = 0.0
         stream = Stream(specification=stream_spec, is_product=is_product, is_outlet=is_outlet,
-                        value=stream_value, number=len(self._stream_table) + 1)
+                        value=stream_value, number=len(self._stream_table) + 1, episode=0)
         self._stream_table.append(stream)
         return stream
 
@@ -281,8 +274,8 @@ class AspenDistillation(dm_env.Environment):
                                                   column_output_specification=column_output_spec)
         total_annual_revenue = tops_stream.value + bottoms_stream.value
         self.info["Revenue"] = total_annual_revenue
-        self.info["Diameter"] = col_info[0]
-        self.info["Height"] = col_info[1]
+        self.info["Diameter"] = col_info[1]
+        self.info["Height"] = col_info[0]
         return total_annual_revenue - total_annual_cost
 
 

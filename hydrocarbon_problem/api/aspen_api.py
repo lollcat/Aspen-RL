@@ -1,6 +1,5 @@
 from typing import Tuple
 import numpy as np
-import time
 # from sqlalchemy import column
 from hydrocarbon_problem.api.Simulation import Simulation
 
@@ -25,6 +24,7 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                        n_butane="N-BUTANE",
                                                        isopentane="I-PENTAN",
                                                        n_pentane="N-PENTAN")
+        self.contact = False
         self.info = {}
         
     def set_input_stream_specification(self, stream_specification: StreamSpecification) -> None:
@@ -89,29 +89,12 @@ class AspenAPI(BaseAspenDistillationAPI):
         # diameter = self._flowsheet.BLK_get_diameter()
         reboiler_temperature = self._flowsheet.BLK_Get_ReboilerTemperature()
         condenser_temperature = self._flowsheet.BLK_Get_CondenserTemperature()
-
-        # start_per_stage_data = time.time()
-        # vap_flows = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows(N_stages=column_input_specification.n_stages)
-        # stage_temp = self._flowsheet.BLK_Get_Column_Stage_Temperatures(N_stages=column_input_specification.n_stages)
-        # stage_mw = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights(N_stages=column_input_specification.n_stages)
-        # duration_per_stage_data = time.time() - start_per_stage_data
-        # print(f"Duration per stage data = {duration_per_stage_data}")
-
-        # start_top_feed_bots_stage_data = time.time()
         vap_flows_short = self._flowsheet.BLK_Get_Column_Stage_Vapor_Flows_Short(N_stages=column_input_specification.n_stages,
                                                                                  feed_stage=column_input_specification.feed_stage_location)
         stage_temp_short = self._flowsheet.BLK_Get_Column_Stage_Temperatures_Short(Nstages=column_input_specification.n_stages,
                                                                              feed_stage=column_input_specification.feed_stage_location)
         stage_mw_short = self._flowsheet.BLK_Get_Column_Stage_Molar_Weights_Short(N_stages=column_input_specification.n_stages,
                                                                                   feed_stage=column_input_specification.feed_stage_location)
-
-        # duration_top_feed_bots_stage_data = time.time() - start_top_feed_bots_stage_data
-        # print(f"Duration per stage data = {duration_top_feed_bots_stage_data}")
-        # D_Specifications = ColumnOutputSpecification(condenser_temperature=condenser_temperature,
-        #                                              reboiler_temperature=reboiler_temperature,
-        #                                              condenser_duty=D_Cond_Duty,
-        #                                              reboiler_duty=D_Reb_Duty,
-        #                                              diameter=diameter)
 
         D_Specifications = ColumnOutputSpecification(condenser_temperature=condenser_temperature,
                                                      reboiler_temperature=reboiler_temperature,
@@ -124,19 +107,32 @@ class AspenAPI(BaseAspenDistillationAPI):
         return D_Specifications
 
     def set_column_specification(self, column_input_specification: ColumnInputSpecification) -> None:
-        if column_input_specification.feed_stage_location > column_input_specification.n_stages:
-            print(f"n_stages: {column_input_specification.n_stages}, feed stage: {column_input_specification.feed_stage_location}")
+        if column_input_specification.feed_stage_location >= column_input_specification.n_stages:
+            raise Exception("Agent should never pick nstages as feed location")
 
         self._flowsheet.BLK_NumberOfStages(column_input_specification.n_stages)
         self._flowsheet.BLK_FeedLocation(column_input_specification.feed_stage_location, "S1")
         self._flowsheet.BLK_Pressure(column_input_specification.condensor_pressure)
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
-        # self._flowsheet.BLK_column_internals(column_input_specification.n_stages)
 
-    def solve_flowsheet(self) -> None:
+    def solve_flowsheet(self, stream_input, column_input) -> bool:
         self._flowsheet.Run()
+        if not self._flowsheet.pywin_error:
+            self.contact = True
+        if self._flowsheet.pywin_error:
+            self.contact = False
+            # print(f"Stream input: {stream_input}")
+            # print(f"Column input: {column_input}")
+            # print("No contact with Aspen, restart Aspen and store input parameters")
+            self.restart_aspen()
+            # self.set_input_stream_specification(stream_specification=stream_input)
+            # self.set_column_specification(column_input_specification=column_input)
+            # self._flowsheet.Run()
+        return self.contact
 
+    def restart_aspen(self) -> None:
+        self._flowsheet.restart(visibility=False, suppress=True, max_iterations=100)
 
     def get_column_cost(self,
                         stream_specification: StreamSpecification,
@@ -144,13 +140,6 @@ class AspenAPI(BaseAspenDistillationAPI):
                         column_output_specification: ColumnOutputSpecification) -> Tuple[float, list]:
         t_reboiler = column_output_specification.reboiler_temperature
         t_condenser = column_output_specification.condenser_temperature
-
-        # invest = self._flowsheet.CAL_InvestmentCost(n_stages=column_input_specification.n_stages,
-        #                                             condenser_duty=column_output_specification.condenser_duty,
-        #                                             reboiler_temperature=t_reboiler,
-        #                                             reboiler_duty=column_output_specification.reboiler_duty,
-        #                                             tops_temperature=t_condenser,
-        #                                             diameter=column_output_specification.diameter)
 
         invest, col_info = self._flowsheet.CAL_InvestmentCost(
             n_stages=column_input_specification.n_stages,

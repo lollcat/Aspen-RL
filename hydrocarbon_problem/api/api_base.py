@@ -31,8 +31,13 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self) -> None:
+    def solve_flowsheet(self, stream_input:StreamSpecification, column_input:ColumnInputSpecification) -> None:
         """Solves the flowsheet. Returns True if the solve was successful."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def restart_aspen(self) -> None:
+        """Restarts Aspen Plus"""
         raise NotImplementedError
 
     @abc.abstractmethod
