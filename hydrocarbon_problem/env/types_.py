@@ -42,4 +42,8 @@ class Column(NamedTuple):
     input_stream_number: int
     tops_stream_number: int
     bottoms_stream_number: int
+    diameter: float
+    height: float
+    n_stages: int
+    column_number: int
     episode: int

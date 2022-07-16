@@ -69,7 +69,7 @@ class AspenDistillation(dm_env.Environment):
         self._stream_numbers_yet_to_be_acted_on = deque()
         self._current_stream_number = self._initial_feed.number
         self._steps = 0
-
+        self.contact = False
         self._blank_state = np.zeros(self.observation_spec().shape)
 
         self.info = {}
@@ -124,11 +124,12 @@ class AspenDistillation(dm_env.Environment):
         feed_stream = self._stream_table[self._current_stream_number-1]
         choose_separate, column_input_spec = self._action_to_column_spec(action)
 
+        self.info["FeedStream"] = feed_stream
 
         self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
         self.flowsheet_api.set_column_specification(column_input_spec)
-        contact = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
-        if contact == True:
+        self.contact = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
+        if self.contact == True:
             self.tops_stream, self.bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
             self._manage_environment_internals(self.tops_stream, self.bottoms_stream, column_input_spec,
@@ -227,6 +228,10 @@ class AspenDistillation(dm_env.Environment):
                         input_stream_number=self._current_stream_number,
                         tops_stream_number=tops_stream.number,
                         bottoms_stream_number=bottoms_stream.number,
+                        diameter=0,
+                        height=0,
+                        n_stages=0,
+                        column_number=0,
                         episode=0
                         )
         self._column_table.append(column)

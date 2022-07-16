@@ -15,15 +15,15 @@ if __name__ == '__main__':
     if agent == "sac":
         os.chdir("../results/SAC")
         path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation" \
-                             "/results/2022-07-14-20-32-06_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64.pkl"  # path to where history was saved
+                             "/results/2022-07-16-12-46-15_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64_LR_1e-4.pkl"  # path to where history was saved
     elif agent == "random":
         os.chdir("../results/Random")
-        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/logging_hist_random_agent.pkl"
+        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/2022-07-16_14-04-20_logging_hist_random_agent_3000_scaled_reward.pkl"
         # "../results/logging_hist_random_agent.pkl"
     hist = pickle.load(open(path_to_saved_hist, "rb"))
 
     hist_keys = list(hist.keys())
-    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[3:]}
+    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[3:-1]}
     col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:3]}
 
     plot_history(agent_spec)
@@ -35,7 +35,28 @@ if __name__ == '__main__':
     max_return = max(episodic_returns)
     index_max_return = episodic_returns.index(max_return)  # Episode with the highest return
 
-    
+    """Retrieve column/stream specs at max return"""
+    tops = []
+    bots = []
+    col = []
+    for i in col_spec:
+        for k in col_spec[i]:
+            if k.episode == index_max_return:
+                if "Bot" in i:
+                    bots.append(k)
+                elif "Col" in i:
+                    col.append(k)
+                elif "Top" in i:
+                    tops.append(k)
+
+
+    # col_max_return = []
+    # for i in col_spec:
+    #     for k in col_spec[i]:
+    #         if k.episode == index_max_return:
+    #             col_max_return.append([k])
+
+
 
     # plot_history(hist)
     # plt.savefig(f'2022-07-14-20-32-06_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64.pdf')

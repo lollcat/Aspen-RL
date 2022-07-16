@@ -43,9 +43,10 @@ def train(n_iterations: int,
     today = today.strftime("%Y-%m-%d")
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_DDPG_{n_iterations}_scaled_reward_batch_and_NN_64.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_{n_iterations}_scaled_reward_batch_and_NN_64_LR_1e-4.pkl")
+        logger_unconverged = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_NO_CONTACT_hist_DDPG_{n_iterations}_scaled_reward_batch_and_NN_64_LR_1e-4.pkl")
     elif set_agent == "random":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -55,6 +56,7 @@ def train(n_iterations: int,
         timestep = env.reset()
         previous_timestep = timestep
         episode_start_time = time.time()
+        counter = 1
         while not timestep.last():
             # get the action
             key, subkey = jax.random.split(key)
@@ -82,11 +84,19 @@ def train(n_iterations: int,
             previous_timestep = timestep
 
             step_metrics = env.info
-
-            step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
-            step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
-            step_metrics["Column"] = step_metrics["Column"]._replace(episode=i)
+            step_metrics["Contact"] = env.contact
+            if env.contact:
+                step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
+                step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
+                step_metrics["Column"] = step_metrics["Column"]._replace(episode=i)
+                step_metrics["Column"] = step_metrics["Column"]._replace(diameter=step_metrics["Diameter"])
+                step_metrics["Column"] = step_metrics["Column"]._replace(height=step_metrics["Height"])
+                step_metrics["Column"] = step_metrics["Column"]._replace(n_stages=step_metrics["n_stages"])
+                step_metrics["Column"] = step_metrics["Column"]._replace(column_number=counter)
+            else:
+                pass
             logger.write(step_metrics)
+            counter += 1
 
         # save useful metrics
         metrics = {"episode_return": episode_return,
@@ -121,7 +131,7 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "sac"
+    agent_type = "random"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -158,8 +168,8 @@ if __name__ == '__main__':
 
         agent = create_agent(networks=sac_net,
                              rng_key=jax.random.PRNGKey(0),
-                             policy_optimizer=optax.adam(5e-5),
-                             q_optimizer=optax.adam(5e-5)
+                             policy_optimizer=optax.adam(1e-4),
+                             q_optimizer=optax.adam(1e-4)
                              )
     else:
         from hydrocarbon_problem.agents.random_agent.random_agent import create_random_agent

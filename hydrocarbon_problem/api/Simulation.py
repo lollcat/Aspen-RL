@@ -2,7 +2,8 @@ import os
 import win32com.client as win32
 import psutil
 import pywintypes
-
+import signal
+from subprocess import check_output
 import numpy as np
 import time
 from datetime import datetime
@@ -12,18 +13,14 @@ class Simulation():
 
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
+        self.running_pid, self.pid_info = self.retrieve_pids("AspenPlus")
+        print(self.running_pid)
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        print(os.getcwd())
+        self.pid = self.set_aspen_pid(self.running_pid)
+        print(self.pid)
         # os.chdir('../AspenSimulation')  # Used absolute path, since I could not get the relative path to work
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
-        # self.now = datetime.now()
-        # self.current_time = self.now.strftime("%H:%M:%S")
-        # print(self.current_time)
-        # self.aspen_list = []
-        # self.check_aspen_pid("AspenPlus")
-
         self.AspenSimulation.Visible = VISIBILITY
         self.AspenSimulation.SuppressDialogs = SUPPRESS
         self.max_iterations = max_iterations
@@ -34,12 +31,30 @@ class Simulation():
         self.pywin_error = False
         self.info = {}
 
-    # def check_aspen_pid(self, process_name):
-    #     procObjList = [procObj for procObj in psutil.process_iter() if 'AspenPlus' in procObj.name()]
-    #     print(procObjList)
-    #     # for elem in procObjList:
-    #     #     pid_list.
-    #     #     print(elem)
+    def retrieve_pids(self, process_name):
+        procObjList = [procObj for procObj in psutil.process_iter() if process_name in procObj.name()]
+        PIDs = []
+        for i in range(len(procObjList)):
+            prog_ = procObjList[i]
+            prog_PID = prog_.pid
+            PIDs.append(prog_PID)
+        print(PIDs)
+        return PIDs, procObjList
+
+    def set_aspen_pid(self,running_pid):
+        new_pids, procObjList = self.retrieve_pids("AspenPlus")
+        print(new_pids)
+        for element in new_pids:
+            if element in running_pid:
+                new_pids.remove(element)
+        aspen_pid = new_pids[0]
+
+        for i in range(len(procObjList)):
+            p = procObjList[i]
+            print(p.pid)
+            if aspen_pid == p.pid:
+                current_process = p
+        return current_process
 
     @property
     def BLK(self):
@@ -212,19 +227,24 @@ class Simulation():
             self.info['Convergence'] = self.converged
 
     def restart(self, visibility, suppress, max_iterations):
-        x = win32.Dispatch("Apwn.Document")
-        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        print(os.getcwd())
-        x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        x.Visible = visibility
-        x.SuppressDialogs = suppress
-        self.AspenSimulation.Close()
-        # os.system("taskkill /f /im AspenPlus.exe")
+        # x = win32.Dispatch("Apwn.Document")
+        # os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
+        # # print(os.getcwd())
+        # x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        # x.Visible = visibility
+        # x.SuppressDialogs = suppress
+        # self.AspenSimulation.Close()
+
+        psutil.Process.terminate(self.pid)
+        self.running_pid = self.retrieve_pids("AspenPlus")
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        print(os.getcwd())
+        self.pid = self.set_aspen_pid(self.running_pid)
+        # os.system("taskkill /f /im AspenPlus.exe")
+        # self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
+        # print(os.getcwd())
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        print(os.getcwd())
+        # print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
         self.AspenSimulation.Visible = False
         self.AspenSimulation.SuppressDialogs = True
