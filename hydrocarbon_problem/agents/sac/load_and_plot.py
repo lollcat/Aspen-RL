@@ -15,19 +15,24 @@ if __name__ == '__main__':
     if agent == "sac":
         os.chdir("../results/SAC")
         path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation" \
-                             "/results/2022-07-16-12-46-15_logging_hist_DDPG_3000_scaled_reward_batch_and_NN_64_LR_1e-4.pkl"  # path to where history was saved
+                             "/results/2022-07-18-15-38-37_logging_hist_SAC_PID_3000_batch_and_NN_64_LR_1e-3.pkl"  # path to where history was saved
     elif agent == "random":
         os.chdir("../results/Random")
-        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/results/2022-07-16_14-04-20_logging_hist_random_agent_3000_scaled_reward.pkl"
+        path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/" \
+                             "results/2022-07-18_11-45-52_logging_hist_random_agent_3000_scaled_reward.pkl"
         # "../results/logging_hist_random_agent.pkl"
     hist = pickle.load(open(path_to_saved_hist, "rb"))
 
     hist_keys = list(hist.keys())
-    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[3:-1]}
-    col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:3]}
+    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[4:-1]}
+    a=agent_spec["Contact"]
+    a[0] = 1.0
+    agent_spec["Contact"] = a
+    agent_spec.pop("Unconverged")
+    col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:4]}
 
     plot_history(agent_spec)
-    plt.savefig(f'blob.pdf')
+    plt.savefig(f'2022-07-18-15-38-37_logging_hist_SAC_PID_3000_batch_and_NN_64_LR_1e-3.pdf')
     plt.show()
 
     """Index for episode with heighest profit"""

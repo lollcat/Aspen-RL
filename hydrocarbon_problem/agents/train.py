@@ -43,7 +43,7 @@ def train(n_iterations: int,
     today = today.strftime("%Y-%m-%d")
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_{n_iterations}_scaled_reward_batch_and_NN_64_LR_1e-4.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_PID_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
         logger_unconverged = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_NO_CONTACT_hist_DDPG_{n_iterations}_scaled_reward_batch_and_NN_64_LR_1e-4.pkl")
     elif set_agent == "random":
         logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
@@ -85,6 +85,7 @@ def train(n_iterations: int,
 
             step_metrics = env.info
             step_metrics["Contact"] = env.contact
+            # logger_unconverged.write(step_metrics)
             if env.contact:
                 step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
                 step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
@@ -93,16 +94,21 @@ def train(n_iterations: int,
                 step_metrics["Column"] = step_metrics["Column"]._replace(height=step_metrics["Height"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(n_stages=step_metrics["n_stages"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(column_number=counter)
+                step_metrics["Unconverged"] = 0
+                logger.write(step_metrics)
             else:
-                pass
-            logger.write(step_metrics)
+                step_metrics["Unconverged"] = step_metrics
+                logger.write(step_metrics)
             counter += 1
 
         # save useful metrics
-        metrics = {"episode_return": episode_return,
-                   "episode_time": time.time() - episode_start_time}
-        logger.write(metrics)
-        print(f"Episode return: {episode_return}")
+        if env.contact:
+            metrics = {"episode_return": episode_return,
+                       "episode_time": time.time() - episode_start_time}
+            logger.write(metrics)
+            print(f"Episode return: {episode_return}")
+        else:
+            pass
         pbar.set_description(f"episode return of {episode_return:.2f}")
 
         # now update the SAC agent
@@ -131,7 +137,7 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "random"
+    agent_type = "sac"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -146,11 +152,13 @@ if __name__ == '__main__':
         os.chdir("results")
         print(os.getcwd())
         logger = logging.getLogger("root")
+        logger_unconverged = logging.getLogger("root")
 
         class CheckTypesFilter(logging.Filter):
             def filter(self, record):
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
+        logger_unconverged.addFilter(CheckTypesFilter())
 
     n_iterations = 3000
     batch_size = 32
@@ -176,8 +184,8 @@ if __name__ == '__main__':
         assert agent_type == "random"
         agent = create_random_agent(env)
 
-    min_sample_length = batch_size * 1#0
-    max_buffer_length = batch_size*10#0000
+    min_sample_length = batch_size * 10
+    max_buffer_length = batch_size*100000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 

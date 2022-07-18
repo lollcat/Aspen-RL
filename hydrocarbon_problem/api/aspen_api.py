@@ -24,7 +24,7 @@ class AspenAPI(BaseAspenDistillationAPI):
                                                        n_butane="N-BUTANE",
                                                        isopentane="I-PENTAN",
                                                        n_pentane="N-PENTAN")
-        self.contact = False
+        self.contact = 0
         self.info = {}
         
     def set_input_stream_specification(self, stream_specification: StreamSpecification) -> None:
@@ -116,12 +116,12 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-    def solve_flowsheet(self, stream_input, column_input) -> bool:
+    def solve_flowsheet(self, stream_input, column_input) -> int:
         self._flowsheet.Run()
         if not self._flowsheet.pywin_error:
-            self.contact = True
+            self.contact = 1
         if self._flowsheet.pywin_error:
-            self.contact = False
+            self.contact = 0
             # print(f"Stream input: {stream_input}")
             # print(f"Column input: {column_input}")
             # print("No contact with Aspen, restart Aspen and store input parameters")

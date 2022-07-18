@@ -7,6 +7,7 @@ from subprocess import check_output
 import numpy as np
 import time
 from datetime import datetime
+from collections import Counter
 
 
 class Simulation():
@@ -14,10 +15,8 @@ class Simulation():
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
         self.running_pid, self.pid_info = self.retrieve_pids("AspenPlus")
-        print(self.running_pid)
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         self.pid = self.set_aspen_pid(self.running_pid)
-        print(self.pid)
         # os.chdir('../AspenSimulation')  # Used absolute path, since I could not get the relative path to work
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
@@ -38,20 +37,25 @@ class Simulation():
             prog_ = procObjList[i]
             prog_PID = prog_.pid
             PIDs.append(prog_PID)
-        print(PIDs)
+        print(f"Aspen PIDS: {PIDs}")
         return PIDs, procObjList
 
-    def set_aspen_pid(self,running_pid):
+    def set_aspen_pid(self, running_pid):
         new_pids, procObjList = self.retrieve_pids("AspenPlus")
-        print(new_pids)
-        for element in new_pids:
-            if element in running_pid:
-                new_pids.remove(element)
-        aspen_pid = new_pids[0]
+        running_and_new = running_pid + new_pids  # Combine arrays and use counter to extract unique value
+        mp = Counter(running_and_new)
+        for it in mp:
+            if mp[it] == 1:
+                aspen_pid = it
+                print(f"Aspen PID: {aspen_pid}")
+        # for element in running_pid:
+        #     if element in new_pids:
+        #         new_pids.remove(element)
+        # aspen_pid = new_pids[0]
 
+        print(f"PID new Aspen Process: {aspen_pid}")
         for i in range(len(procObjList)):
             p = procObjList[i]
-            print(p.pid)
             if aspen_pid == p.pid:
                 current_process = p
         return current_process
@@ -209,6 +213,7 @@ class Simulation():
         self.tries = 0
         while self.tries != 2:
             start = time.time()
+            # self.AspenSimulation.Engine.Run2()
             try:
                 self.AspenSimulation.Engine.Run2()
             # """"Implement com_error exception, when encountered try self.AspenSimulation.Reinit()"""
@@ -236,10 +241,11 @@ class Simulation():
         # self.AspenSimulation.Close()
 
         psutil.Process.terminate(self.pid)
-        self.running_pid = self.retrieve_pids("AspenPlus")
+        self.running_pid, self.pid_info = self.retrieve_pids("AspenPlus")
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         self.pid = self.set_aspen_pid(self.running_pid)
+        self.pywin_error = False
         # os.system("taskkill /f /im AspenPlus.exe")
         # self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         # print(os.getcwd())

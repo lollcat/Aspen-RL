@@ -129,7 +129,7 @@ class AspenDistillation(dm_env.Environment):
         self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
         self.flowsheet_api.set_column_specification(column_input_spec)
         self.contact = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
-        if self.contact == True:
+        if self.contact == 1:
             self.tops_stream, self.bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
             self._manage_environment_internals(self.tops_stream, self.bottoms_stream, column_input_spec,
