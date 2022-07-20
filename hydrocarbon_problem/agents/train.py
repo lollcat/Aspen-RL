@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from functools import partial
 
+
+from acme.jax.savers import restore_from_path, save_to_path
+
 # from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
@@ -24,7 +27,9 @@ def train(n_iterations: int,
           buffer: ReplayBuffer,
           key = jax.random.PRNGKey(0),
           n_sac_updates_per_episode: int = 3,
-          batch_size: int = 32
+          batch_size: int = 32,
+          do_checkpointing: bool = False,  # if we save checkpoints
+          iter_per_checkpoint: int = 100  # how often we save checkpoints
           ):
     # initialise the buffer state (filling it with random experience)
     key, subkey = jax.random.split(key)
@@ -94,6 +99,13 @@ def train(n_iterations: int,
 
         logger.write({"agent_step_time": time.time() - sac_start_time})
 
+        if do_checkpointing:
+            if i % iter_per_checkpoint == 0:
+                print(f"saving checkpoint at iteration {i}")
+                save_to_path(f"agent_state_iter{i}", agent.state)
+                save_to_path(f"buffer_state_iter_{i}", buffer_state)
+
+
     plot_history(logger.history)
     plt.show()
 
@@ -115,10 +127,12 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 3
-    batch_size = 6
-    n_sac_updates_per_episode = 5
-    agent_name = "random"
+    n_iterations = 10
+    batch_size = 3
+    n_sac_updates_per_episode = 1
+    agent_name = "SAC"
+    do_checkpointing = True
+    iter_per_checkpoint = 100 # how often to save checkpoints
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -148,4 +162,6 @@ if __name__ == '__main__':
     train(
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env,
         batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
+        do_checkpointing=do_checkpointing,
+        iter_per_checkpoint=iter_per_checkpoint
           )
