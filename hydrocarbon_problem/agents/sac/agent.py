@@ -14,12 +14,14 @@ class Agent(NamedTuple):
     select_action: SelectAction
     update: AgentUpdate
     state: TrainingState
+    learner: SACLearner  # useful for debugging
 
 
 def create_agent(networks: SACNetworks,
                  rng_key: chex.PRNGKey,
                  policy_optimizer: optax.GradientTransformation,
                  q_optimizer: optax.GradientTransformation,
+                 auto_tune_alpha: bool = True
                  ) -> Agent:
     """
     To bake in the next_state discounting, we add this to the next_observation field
@@ -54,6 +56,7 @@ def create_agent(networks: SACNetworks,
                         iterator=None,
                         policy_optimizer=policy_optimizer,
                         q_optimizer=q_optimizer,
+                        entropy_coefficient=None if auto_tune_alpha else 1.0
                         )
 
     @jax.jit
@@ -73,7 +76,8 @@ def create_agent(networks: SACNetworks,
 
 
     agent = Agent(select_action=select_action, update=update_agent,
-                  state=leaner._state)
+                  state=leaner._state,
+                  learner=leaner)
 
     return agent
 

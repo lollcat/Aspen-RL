@@ -125,7 +125,10 @@ class SACLearner(acme.Learner):
                                        transitions.discount * discount * next_v)
       q_error = q_old_action - jnp.expand_dims(target_q, -1)
       q_loss = 0.5 * jnp.mean(jnp.square(q_error))
-      return q_loss
+      info = {"critic_loss__target_q_mean": jnp.mean(target_q),
+              "critic_loss__next_log_prob_mean": jnp.mean(next_log_prob),
+              "critic_loss__next_q_mean": jnp.mean(next_q)}
+      return q_loss, info
 
     def actor_loss(policy_params: networks_lib.Params,
                    q_params: networks_lib.Params,
@@ -140,12 +143,12 @@ class SACLearner(acme.Learner):
           q_params, transitions.observation, action)
       min_q = jnp.min(q_action, axis=-1)
       actor_loss = alpha * log_prob - min_q
-      info = {"actor_loss_min_q_mean": jnp.mean(min_q),
-              "actor_loss_log_prob_mean": jnp.mean(log_prob)}
+      info = {"actor_loss__min_q_mean": jnp.mean(min_q),
+              "actor_loss__log_prob_mean": jnp.mean(log_prob)}
       return jnp.mean(actor_loss), info
 
     alpha_grad = jax.value_and_grad(alpha_loss)
-    critic_grad = jax.value_and_grad(critic_loss)
+    critic_grad = jax.value_and_grad(critic_loss, has_aux=True)
     actor_grad = jax.value_and_grad(actor_loss, has_aux=True)
 
     def update_step(
@@ -161,7 +164,7 @@ class SACLearner(acme.Learner):
         alpha = jnp.exp(state.alpha_params)
       else:
         alpha = entropy_coefficient
-      critic_loss, critic_grads = critic_grad(state.q_params,
+      (critic_loss, critic_info), critic_grads = critic_grad(state.q_params,
                                               state.policy_params,
                                               state.target_q_params, alpha,
                                               transitions, key_critic)
@@ -186,6 +189,7 @@ class SACLearner(acme.Learner):
           'actor_loss': actor_loss,
       }
       metrics.update(actor_info)
+      metrics.update(critic_info)
 
       new_state = TrainingState(
           policy_optimizer_state=policy_optimizer_state,
@@ -234,7 +238,7 @@ class SACLearner(acme.Learner):
 
     # Iterator on demonstration transitions.
     self._iterator = iterator
-
+    self._unjitted_update_step = update_step
     update_step = utils.process_multiple_batches(update_step,
                                                  num_sgd_steps_per_step)
     # Use the JIT compiler.

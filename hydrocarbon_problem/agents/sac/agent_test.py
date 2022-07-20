@@ -28,6 +28,9 @@ def create_fake_batch(env: AspenDistillation, batch_size: int = 10) -> Transitio
     batch = jax.tree_map(
         lambda x: jnp.broadcast_to(x, shape=(batch_size, *x.shape)), transition
     )
+    batch = batch._replace(discount=batch.discount.at[-1].set(0),
+                           observation=jax.random.normal(shape=batch.observation.shape,
+                                                  key=jax.random.PRNGKey(0)))
     return batch
 
 
@@ -56,13 +59,15 @@ def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
 def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
     batch = create_fake_batch(env)
     logger = ListLogger()
-    for i in tqdm(range(1000)):
+    for i in tqdm(range(10000)):
         agent_state, info = agent.update(agent.state, batch)
         agent = agent._replace(state=agent_state)
         chex.assert_tree_all_finite(agent_state)
         logger.write(info)
     plot_history(logger.history)
     plt.show()
+    # state, info = agent.learner._unjitted_update_step(agent_state, batch)
+
 
 
 if __name__ == '__main__':
@@ -70,13 +75,14 @@ if __name__ == '__main__':
 
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
     sac_net = create_sac_networks(env=env,
-                                  policy_hidden_units=(3,),
+                                  policy_hidden_units=(10,10),
                                   q_value_hidden_units=(10, 10))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),
                          policy_optimizer=optax.adam(1e-3),
-                         q_optimizer=optax.adam(1e-3)
+                         q_optimizer=optax.adam(1e-3),
+                         auto_tune_alpha=True
                          )
 
     test_agent_select_action(agent, env)
