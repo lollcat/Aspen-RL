@@ -3,7 +3,7 @@ import win32com.client as win32
 import psutil
 import pywintypes
 import signal
-from subprocess import check_output
+import subprocess
 import numpy as np
 import time
 from datetime import datetime
@@ -14,10 +14,11 @@ class Simulation():
 
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
-        self.running_pid, self.pid_info = self.retrieve_pids("AspenPlus")
+        self.running_pid = self.pid_com_v2(process_name="blob",instance="old")
+        # self.running_pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance='old')
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        self.pid = self.set_aspen_pid(self.running_pid)
-        # os.chdir('../AspenSimulation')  # Used absolute path, since I could not get the relative path to work
+        self.pid = self.pid_com_v2(process_name="blob",instance="new")
+        # self.pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance="new")
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
         self.AspenSimulation.Visible = VISIBILITY
@@ -30,35 +31,95 @@ class Simulation():
         self.pywin_error = False
         self.info = {}
 
-    def retrieve_pids(self, process_name):
-        procObjList = [procObj for procObj in psutil.process_iter() if process_name in procObj.name()]
-        PIDs = []
-        for i in range(len(procObjList)):
-            prog_ = procObjList[i]
-            prog_PID = prog_.pid
-            PIDs.append(prog_PID)
-        print(f"Aspen PIDS: {PIDs}")
-        return PIDs, procObjList
+    def pid_com(self, process_name, instance):
+        notepad_stat = False                    # 2168540
+        # while not notepad_stat:
+        #     os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
+        #     with open('PID_check.txt', 'r') as file:
+        #         pid_check = file.read().rstrip()
+        #     if pid_check == "Y" and instance == 'old':  # Y to proceed with PID retrieval, N is wait for other process
+        #         notepad_stat = True
+        #         with open('PID_check.txt', 'w') as file:
+        #             file.write("N")
+        #             file.close()
+        #         print("Retrieving PIDs")
+        #         PIDs, procObjList = self.retrieve_pids(process_name=process_name)
+        #     elif pid_check == "N" and instance == 'new':
+        #         PIDs, procObjList = self.retrieve_pids(process_name=process_name)
+        #         pid_info = self.set_aspen_pid(running_pid=self.running_pid, new_pids=PIDs, pid_info=procObjList)
+        #         with open('PID_check.txt', 'w') as file:
+        #             file.write("Y")
+        #             file.close()
+        #         notepad_stat = True
+        #         print(f"PID is done, {pid_info}")
+        #         blob = 0
+        #     else:
+        #         print('PID waiting')
+        #         time.sleep(2)
+        # if instance == 'old':
+        #     return PIDs, procObjList
+        # elif instance == 'new':
+        #     return pid_info, blob
 
-    def set_aspen_pid(self, running_pid):
-        new_pids, procObjList = self.retrieve_pids("AspenPlus")
+    def pid_com_v2(self, process_name, instance):
+        notepad_stat = False                    # 2168540
+        while not notepad_stat:
+            os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
+            with open('PID_check.txt', 'r') as file:
+                pid_check = file.read().rstrip()
+            if pid_check == "Y" and instance == 'old':  # Y to proceed with PID retrieval, N is wait for other process
+                notepad_stat = True
+                with open('PID_check.txt', 'w') as file:
+                    file.write("N")
+                    file.close()
+                print("Retrieving PIDs")
+                PIDs = self.retrieve_pids(process_name=process_name)
+            elif pid_check == "N" and instance == 'new':
+                PIDs = self.retrieve_pids(process_name=process_name)
+                aspen_id = self.set_aspen_pid(running_pid=self.running_pid, new_pids=PIDs)
+                with open('PID_check.txt', 'w') as file:
+                    file.write("Y")
+                    file.close()
+                notepad_stat = True
+            else:
+                print('PID waiting')
+                time.sleep(2)
+        if instance == 'old':
+            return PIDs
+        elif instance == 'new':
+            return int(aspen_id)
+
+    def retrieve_pids(self, process_name):
+        a = [line.split() for line in subprocess.check_output("tasklist").splitlines()]
+        PIDs = []
+        a.pop(0)
+        for i in a:
+            if i[0] == b'AspenPlus.exe':
+                k = i[1].decode('UTF-8')
+                print(k)
+                PIDs.append(k)
+
+        # procObjList = [procObj for procObj in psutil.process_iter() if process_name in procObj.name()]
+        # PIDs = []
+        # for i in range(len(procObjList)):
+        #     prog_ = procObjList[i]
+        #     prog_PID = prog_.pid
+        #     PIDs.append(prog_PID)
+        # print(f"Aspen PIDS: {PIDs}")
+        return PIDs  #, procObjList
+
+    def set_aspen_pid(self, running_pid, new_pids):
         running_and_new = running_pid + new_pids  # Combine arrays and use counter to extract unique value
         mp = Counter(running_and_new)
         for it in mp:
             if mp[it] == 1:
                 aspen_pid = it
                 print(f"Aspen PID: {aspen_pid}")
-        # for element in running_pid:
-        #     if element in new_pids:
-        #         new_pids.remove(element)
-        # aspen_pid = new_pids[0]
-
-        print(f"PID new Aspen Process: {aspen_pid}")
-        for i in range(len(procObjList)):
-            p = procObjList[i]
-            if aspen_pid == p.pid:
-                current_process = p
-        return current_process
+        # for i in range(len(pid_info)):
+        #     p = pid_info[i]
+        #     if aspen_pid == p.pid:
+        #         current_process = p
+        return aspen_pid #current_process
 
     @property
     def BLK(self):
@@ -66,10 +127,6 @@ class Simulation():
 
     def BLK_NumberOfStages(self, nstages):
         self.BLK.Elements("B1").Elements("Input").Elements("NSTAGE").Value = nstages
-
-    # def BLK_column_internals(self, nstages):
-    #     self.BLK.Elements("B1").Elements("Input").Elements("CA_STAGE1").Elements("INT-1").Elements("CS-1").Value = 2
-    #     self.BLK.Elements("B1").Elements("Input").Elements("CA_STAGE2").Elements("INT-1").Elements("CS-1").Value = nstages-1
 
     def BLK_FeedLocation(self, Feed_Location, Feed_Name):
         self.BLK.Elements("B1").Elements("Input").Elements("FEED_STAGE").Elements(Feed_Name).Value = Feed_Location
@@ -149,24 +206,6 @@ class Simulation():
             reboiler_duty = 0
         return reboiler_duty  # Watt
 
-    # def BLK_Get_Column_Stage_Molar_Weights(self, N_stages):
-    #     M = []
-    #     for i in range(1, N_stages + 1):
-    #         M += [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(i)).Value]
-    #     return M  # g/mol
-    #
-    # def BLK_Get_Column_Stage_Vapor_Flows(self, N_stages):
-    #     V=[]
-    #     for i in range(1, N_stages + 1):
-    #         V += [self.BLK.Elements("B1").Elements("Output").Elements("VAP_FLOW").Elements(str(i)).Value * 1000]
-    #     return V  # mol/s
-    #
-    # def BLK_Get_Column_Stage_Temperatures(self, N_stages):
-    #     T = []
-    #     for i in range(1, N_stages + 1):
-    #         T += [self.BLK.Elements("B1").Elements("Output").Elements("B_TEMP").Elements(str(i)).Value]
-    #     return T  # degree C
-
     def BLK_Get_Column_Stage_Vapor_Flows_Short(self, N_stages, feed_stage):
         V = []
         if feed_stage == N_stages:
@@ -239,21 +278,36 @@ class Simulation():
         # x.Visible = visibility
         # x.SuppressDialogs = suppress
         # self.AspenSimulation.Close()
-
-        psutil.Process.terminate(self.pid)
-        self.running_pid, self.pid_info = self.retrieve_pids("AspenPlus")
+        terminate = False
+        while not terminate:
+            os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
+            with open('PID_check.txt', 'r') as file:
+                pid_check = file.read().rstrip()
+            if pid_check == "Y":
+                with open('PID_check.txt', 'w') as file:
+                    file.write("N")
+                    file.close()
+                print(f"Terminate Aspen: {self.pid}")
+                os.kill(self.pid, signal.SIGINT)
+                # psutil.Process.terminate(self.pid)
+                with open('PID_check.txt', 'w') as file:
+                    file.write("Y")
+                    file.close()
+                terminate = True
+            else:
+                print("Wait to terminate Aspen")
+                time.sleep(2)
+        self.running_pid, self.pid_info = self.pid_com_v2(process_name="AspenPlus", instance='old')
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        self.pid = self.set_aspen_pid(self.running_pid)
+        self.pid, self.pid_info = self.pid_com_v2(process_name="AspenPlus", instance="new")
         self.pywin_error = False
         # os.system("taskkill /f /im AspenPlus.exe")
         # self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        # print(os.getcwd())
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        # print(os.getcwd())
         self.AspenSimulation.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        self.AspenSimulation.Visible = False
-        self.AspenSimulation.SuppressDialogs = True
+        self.AspenSimulation.Visible = visibility
+        self.AspenSimulation.SuppressDialogs = suppress
         self.max_iterations = max_iterations
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
         print("Aspen has been restarted")

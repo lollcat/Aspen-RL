@@ -41,7 +41,7 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
         assert isinstance(column_specification, ColumnInputSpecification)
 
-    def solve_flowsheet(self) -> None:
+    def solve_flowsheet(self, *args, **kwargs) -> None:
         pass
 
     def get_column_cost(self, stream_specification: StreamSpecification,

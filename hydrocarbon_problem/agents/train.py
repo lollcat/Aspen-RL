@@ -43,8 +43,8 @@ def train(n_iterations: int,
     today = today.strftime("%Y-%m-%d")
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_PID_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
-        logger_unconverged = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_NO_CONTACT_hist_DDPG_{n_iterations}_scaled_reward_batch_and_NN_64_LR_1e-4.pkl")
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_DDPG_PID"
+                                                                f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
     elif set_agent == "random":
         logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
 
@@ -85,7 +85,7 @@ def train(n_iterations: int,
 
             step_metrics = env.info
             step_metrics["Contact"] = env.contact
-            # logger_unconverged.write(step_metrics)
+
             if env.contact:
                 step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
                 step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
@@ -94,7 +94,6 @@ def train(n_iterations: int,
                 step_metrics["Column"] = step_metrics["Column"]._replace(height=step_metrics["Height"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(n_stages=step_metrics["n_stages"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(column_number=counter)
-                step_metrics["Unconverged"] = 0
                 logger.write(step_metrics)
             else:
                 step_metrics["Unconverged"] = step_metrics
@@ -127,9 +126,9 @@ def train(n_iterations: int,
                 logger.write(info)
 
             logger.write({"agent_step_time": time.time() - sac_start_time})
-        if (i % 100) == 0:
-            print("100 episodes passed, restart Aspen")
-            env.flowsheet_api.restart_aspen()
+        # if (i % 1000) == 0:
+        #     print("100 episodes passed, restart Aspen")
+        #     env.flowsheet_api.restart_aspen()
 
     plot_history(logger.history)
     plt.show()
@@ -137,7 +136,7 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "sac"
+    agent_type = "random"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -148,9 +147,7 @@ if __name__ == '__main__':
         # If we don't want to print warnings.
         # Should be used with care.
         import logging
-        print(os.getcwd())
         os.chdir("results")
-        print(os.getcwd())
         logger = logging.getLogger("root")
         logger_unconverged = logging.getLogger("root")
 
@@ -184,8 +181,8 @@ if __name__ == '__main__':
         assert agent_type == "random"
         agent = create_random_agent(env)
 
-    min_sample_length = batch_size * 10
-    max_buffer_length = batch_size*100000
+    min_sample_length = batch_size * 1#0
+    max_buffer_length = batch_size*10#0000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 

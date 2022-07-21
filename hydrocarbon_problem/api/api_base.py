@@ -35,9 +35,17 @@ class BaseAspenDistillationAPI(abc.ABC):
         """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError
 
-    @abc.abstractmethod
+    # @abc.abstractmethod
     def restart_aspen(self) -> None:
         """Restarts Aspen Plus"""
+        raise NotImplementedError
+
+    def pid_com(self, process_name, instance):
+        """Setting PID communicator in PID_check.txt"""
+        raise NotImplementedError
+
+    def retrieve_pids(self, process_name):
+        """Retrieving PID values of AspenPlus"""
         raise NotImplementedError
 
     @abc.abstractmethod
