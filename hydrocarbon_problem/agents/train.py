@@ -42,8 +42,18 @@ def train(n_iterations: int,
 
     if agent_checkpoint_load_dir:
         agent = agent._replace(state=restore_from_path(agent_checkpoint_load_dir))
+
     if buffer_state_load_dir:
         buffer_state = restore_from_path(buffer_state_load_dir)
+
+    # DEBUG = True
+    # if DEBUG:
+    #     batch = buffer.sample(buffer_state, subkey, batch_size)
+    #     # chex.assert_tree_all_finite(batch)
+    #
+    #     # update the agent using the sampled batch
+    #     # Now we can step through the update function for debugging.
+    #     agent_state, info = agent.learner._unjitted_update_step(agent.state, batch)
 
     logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist.pkl")
 
