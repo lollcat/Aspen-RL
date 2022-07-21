@@ -57,7 +57,7 @@ class SACLearner(acme.Learner):
       tau: float = 0.005,
       reward_scale: float = 1.0,
       discount: float = 0.99,
-      entropy_coefficient: Optional[float] = 0.0,  # None = SAC (adaptive alpha)  0.0 = DDPG
+      entropy_coefficient: Optional[float] = None,  # None = SAC (adaptive alpha)  0.0 = DDPG
       target_entropy: float = 0,
       counter: Optional[counting.Counter] = None,
       logger: Optional[loggers.Logger] = None,

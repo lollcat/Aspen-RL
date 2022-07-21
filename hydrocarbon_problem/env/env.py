@@ -70,6 +70,7 @@ class AspenDistillation(dm_env.Environment):
         self._current_stream_number = self._initial_feed.number
         self._steps = 0
         self.contact = False
+        self.converged = 0
         self._blank_state = np.zeros(self.observation_spec().shape)
 
         self.info = {}
@@ -166,7 +167,7 @@ class AspenDistillation(dm_env.Environment):
                         np.array(1-done.overall))
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
-                                   reward=reward/1000, discount=discount)  # reward B€
+                                   reward=reward/100, discount=discount)  # reward 100M€
 
         if choose_separate:
             self.info.update(column_input_spec._asdict())

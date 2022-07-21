@@ -79,8 +79,8 @@ if __name__ == '__main__':
     from hydrocarbon_problem.api.aspen_api import AspenAPI
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI()) #AspenAPI()
     sac_net = create_sac_networks(env=env,
-                                  policy_hidden_units=(10,10),
-                                  q_value_hidden_units=(10, 10))
+                                  policy_hidden_units=(32,32),
+                                  q_value_hidden_units=(32, 32))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),

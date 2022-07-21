@@ -96,7 +96,7 @@ class Simulation():
         for i in a:
             if i[0] == b'AspenPlus.exe':
                 k = i[1].decode('UTF-8')
-                print(k)
+                # print(k)
                 PIDs.append(k)
 
         # procObjList = [procObj for procObj in psutil.process_iter() if process_name in procObj.name()]

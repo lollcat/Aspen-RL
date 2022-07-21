@@ -5,22 +5,14 @@ from hydrocarbon_problem.agents.logger import plot_history
 import matplotlib.pyplot as plt
 
 
-def concentration(top):
-    conc = []
-    for z in top:
-        total_flows = sum(top)
-        conc_ = z / total_flows * 100
-        conc.append(conc_)
-    return conc
-
 if __name__ == '__main__':
-    agent = "random"
+    agent = "sac"
 
     now = datetime.now()
     current_time = now.strftime("%H_%M_%S")
     today = date.today()
     print(os.getcwd())
-    name = "2022-07-19_16-50-50_logging_hist_random_agent_3000_scaled_reward"
+    name = "2022-07-21-17-10-07_logging_hist_SAC_PID_3000_batch_and_NN_64_LR_1e-4"
     if agent == "sac":
         os.chdir("../results/SAC")
         # os.chdir("../agents/sac")

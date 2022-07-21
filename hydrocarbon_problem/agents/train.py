@@ -47,7 +47,7 @@ def train(n_iterations: int,
     today = today.strftime("%Y-%m-%d")
 
     if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_DDPG_PID"
+        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_PID"
                                                                 f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
     elif set_agent == "random":
         logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
@@ -201,5 +201,5 @@ if __name__ == '__main__':
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env, key=rng_key,
         batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
         do_checkpointing=do_checkpointing,
-        iter_per_checkpoint=iter_per_checkpoint
+        iter_per_checkpoint=iter_per_checkpoint, set_agent=agent_type
           )
