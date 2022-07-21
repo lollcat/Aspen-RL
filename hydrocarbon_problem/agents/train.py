@@ -8,8 +8,11 @@ from tqdm import tqdm
 from functools import partial
 import os
 from datetime import datetime, date
-
 from hydrocarbon_problem.api.aspen_api import AspenAPI
+
+from acme.jax.savers import restore_from_path, save_to_path
+
+# from hydrocarbon_problem.api.aspen_api import AspenAPI
 from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
 from hydrocarbon_problem.agents.sac.agent import create_agent, Agent
 from hydrocarbon_problem.agents.sac.buffer import ReplayBuffer
@@ -20,7 +23,6 @@ from hydrocarbon_problem.agents.logger import ListLogger, plot_history
 from hydrocarbon_problem.api.Simulation import Simulation
 
 
-
 def train(n_iterations: int,
           env: AspenDistillation,
           agent: Agent,
@@ -28,7 +30,9 @@ def train(n_iterations: int,
           key = jax.random.PRNGKey(0),
           n_sac_updates_per_episode: int = 3,
           batch_size: int = 32,
-          set_agent: str = "random",
+          do_checkpointing: bool = False,  # if we save checkpoints
+          iter_per_checkpoint: int = 100,  # how often we save checkpoints
+          set_agent: str = "random"
           ):
 
     # initialise the buffer state (filling it with random experience)
@@ -130,13 +134,20 @@ def train(n_iterations: int,
         #     print("100 episodes passed, restart Aspen")
         #     env.flowsheet_api.restart_aspen()
 
+        if do_checkpointing:
+            if i % iter_per_checkpoint == 0:
+                print(f"saving checkpoint at iteration {i}")
+                save_to_path(f"agent_state_iter{i}", agent.state)
+                save_to_path(f"buffer_state_iter_{i}", buffer_state)
+
+
     plot_history(logger.history)
     plt.show()
 
 
 if __name__ == '__main__':
 
-    agent_type = "random"
+    agent_type = "sac"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -149,17 +160,17 @@ if __name__ == '__main__':
         import logging
         os.chdir("results")
         logger = logging.getLogger("root")
-        logger_unconverged = logging.getLogger("root")
 
         class CheckTypesFilter(logging.Filter):
             def filter(self, record):
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
-        logger_unconverged.addFilter(CheckTypesFilter())
 
     n_iterations = 3000
     batch_size = 32
     n_sac_updates_per_episode = 1
+    do_checkpointing = True
+    iter_per_checkpoint = 100 # how often to save checkpoints
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -181,11 +192,14 @@ if __name__ == '__main__':
         assert agent_type == "random"
         agent = create_random_agent(env)
 
-    min_sample_length = batch_size * 1#0
-    max_buffer_length = batch_size*10#0000
+    min_sample_length = batch_size * 10
+    max_buffer_length = batch_size*100000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 
     train(
-        n_iterations=n_iterations, agent=agent, buffer=buffer, env=env,
-        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode, set_agent=agent_type)
+        n_iterations=n_iterations, agent=agent, buffer=buffer, env=env, key=rng_key,
+        batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
+        do_checkpointing=do_checkpointing,
+        iter_per_checkpoint=iter_per_checkpoint
+          )
