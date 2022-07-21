@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jax
 import numpy as np
 import optax
@@ -28,6 +30,8 @@ def train(n_iterations: int,
           key = jax.random.PRNGKey(0),
           n_sac_updates_per_episode: int = 3,
           batch_size: int = 32,
+          agent_checkpoint_load_dir: Optional[str] = None,
+          buffer_state_load_dir: Optional[str] = None,
           do_checkpointing: bool = False,  # if we save checkpoints
           iter_per_checkpoint: int = 100  # how often we save checkpoints
           ):
@@ -36,6 +40,10 @@ def train(n_iterations: int,
     buffer_select_action = partial(agent.select_action, agent.state)
     buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
 
+    if agent_checkpoint_load_dir:
+        agent = agent._replace(state=restore_from_path(agent_checkpoint_load_dir))
+    if buffer_state_load_dir:
+        buffer_state = restore_from_path(buffer_state_load_dir)
 
     logger = ListLogger(save_period=1, save=True, save_path="./results/logging_hist.pkl")
 
@@ -127,12 +135,13 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 10
+    n_iterations = 2
     batch_size = 3
     n_sac_updates_per_episode = 1
     agent_name = "SAC"
     do_checkpointing = True
-    iter_per_checkpoint = 100 # how often to save checkpoints
+    iter_per_checkpoint = 1 # how often to save checkpoints
+    agent_checkpoint_load_dir = "/home/laurence/work/code/Aspen-RL/hydrocarbon_problem/agents/sac/agent_state_iter0"
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -163,5 +172,6 @@ if __name__ == '__main__':
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env,
         batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
         do_checkpointing=do_checkpointing,
-        iter_per_checkpoint=iter_per_checkpoint
+        iter_per_checkpoint=iter_per_checkpoint,
+        agent_checkpoint_load_dir=agent_checkpoint_load_dir
           )
