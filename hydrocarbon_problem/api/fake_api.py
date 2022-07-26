@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from hydrocarbon_problem.api.api_base import BaseAspenDistillationAPI
@@ -41,8 +41,8 @@ class FakeDistillationAPI(BaseAspenDistillationAPI):
     def set_column_specification(self, column_specification: ColumnInputSpecification) -> None:
         assert isinstance(column_specification, ColumnInputSpecification)
 
-    def solve_flowsheet(self, *args, **kwargs) -> None:
-        pass
+    def solve_flowsheet(self, *args, **kwargs) -> Union[int, int]:
+        return 1,1
 
     def get_column_cost(self, stream_specification: StreamSpecification,
                         column_input_specification: ColumnInputSpecification,

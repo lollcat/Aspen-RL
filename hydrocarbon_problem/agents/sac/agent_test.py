@@ -61,7 +61,7 @@ def test_agent_update(agent: Agent, env: AspenDistillation) -> None:
 def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
     batch = create_fake_batch(env)
     logger = ListLogger(
-        save_path="C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/Fake_API.pkl")
+        save_path="C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/agent_test.pkl")
     # logger = ListLogger()
     for i in tqdm(range(10000)):
         agent_state, info = agent.update(agent.state, batch)
@@ -77,7 +77,7 @@ def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
 if __name__ == '__main__':
     from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
     from hydrocarbon_problem.api.aspen_api import AspenAPI
-    env = AspenDistillation(flowsheet_api=FakeDistillationAPI()) #AspenAPI()
+    env = AspenDistillation(flowsheet_api=AspenAPI()) #FakeDistillationAPI()
     sac_net = create_sac_networks(env=env,
                                   policy_hidden_units=(32,32),
                                   q_value_hidden_units=(32, 32))

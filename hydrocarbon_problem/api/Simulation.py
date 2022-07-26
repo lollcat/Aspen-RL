@@ -14,10 +14,12 @@ class Simulation():
 
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
+        start = time.time()
         self.running_pid = self.pid_com_v2(process_name="blob",instance="old")
         # self.running_pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance='old')
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         self.pid = self.pid_com_v2(process_name="blob",instance="new")
+        print(f"PID duration = {time.time() - start}")
         # self.pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance="new")
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
@@ -62,7 +64,7 @@ class Simulation():
         #     return pid_info, blob
 
     def pid_com_v2(self, process_name, instance):
-        notepad_stat = False                    # 2168540
+        notepad_stat = False
         while not notepad_stat:
             os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
             with open('PID_check.txt', 'r') as file:
@@ -266,9 +268,11 @@ class Simulation():
             if self.converged == 0 or self.converged == 2:
                 break
             else:
+                print("Aspen Error")
                 time.sleep(1)
                 self.tries += 1
             self.info['Convergence'] = self.converged
+
 
     def restart(self, visibility, suppress, max_iterations):
         # x = win32.Dispatch("Apwn.Document")
@@ -279,6 +283,7 @@ class Simulation():
         # x.SuppressDialogs = suppress
         # self.AspenSimulation.Close()
         terminate = False
+        start = time.time()
         while not terminate:
             os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
             with open('PID_check.txt', 'r') as file:
@@ -301,6 +306,7 @@ class Simulation():
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
         self.pid, self.pid_info = self.pid_com_v2(process_name="AspenPlus", instance="new")
+        print(f"PID duration = {time.time() - start}")
         self.pywin_error = False
         # os.system("taskkill /f /im AspenPlus.exe")
         # self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")

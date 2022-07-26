@@ -72,7 +72,7 @@ class AspenDistillation(dm_env.Environment):
         self.contact = False
         self.converged = 0
         self._blank_state = np.zeros(self.observation_spec().shape)
-
+        self.terminate_on_flowsheet_fail = True
         self.info = {}
 
     def observation_spec(self) -> specs.Array:
@@ -129,8 +129,8 @@ class AspenDistillation(dm_env.Environment):
 
         self.flowsheet_api.set_input_stream_specification(feed_stream.specification)
         self.flowsheet_api.set_column_specification(column_input_spec)
-        self.contact = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
-        if self.contact == 1:
+        self.contact, self.converged = self.flowsheet_api.solve_flowsheet(stream_input=feed_stream.specification, column_input=column_input_spec)
+        if self.contact == 1 and (self.converged == 0 or self.converged == 2):
             self.tops_stream, self.bottoms_stream, column_output_spec = \
             self._get_simulated_flowsheet_info(column_input_spec)
             self._manage_environment_internals(self.tops_stream, self.bottoms_stream, column_input_spec,
@@ -148,11 +148,11 @@ class AspenDistillation(dm_env.Environment):
                                 self._stream_to_observation(self.bottoms_stream)),
                 upcoming_state=upcoming_stream_obs)
             done = Done((self.tops_stream.is_outlet, self.bottoms_stream.is_outlet), done_overall)
-        else:
-            # choose not to separate the stream
+        elif self.contact == 0 or self.converged == 1:
+            self.info["Column_error"] = column_input_spec
             self._manage_environment_internals_no_act()
             done_overall = self.get_done_overall()
-            reward = 0.0
+            reward = -2.0
             if not done_overall:
                 upcoming_stream = self._get_upcoming_stream()
                 upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
@@ -178,8 +178,9 @@ class AspenDistillation(dm_env.Environment):
         """Indicates whether the overall episode is complete, because either the
         maximum number of environment steps have been taken, or the
         self._stream_numbers_yet_to_be_acted_on is empty. """
+        done_from_flowsheet_crash = True if (self.terminate_on_flowsheet_fail and (self.converged == 1 or self.contact == 0)) else False
         return self._steps >= self._max_n_steps or \
-               len(self._stream_numbers_yet_to_be_acted_on) == 0
+               len(self._stream_numbers_yet_to_be_acted_on) == 0 or done_from_flowsheet_crash
 
 
     def _action_to_column_spec(self, action: Action) -> Tuple[bool,
@@ -293,7 +294,7 @@ class AspenDistillation(dm_env.Environment):
         pressure_scaling = 25
         molar_flows = [flow / FLOW_OBS_SCALING for flow in stream_spec.molar_flows]
         obs = np.array([stream_spec.temperature/temp_scaling,
-                        stream_spec.pressure/pressure_scaling] + molar_flows
+                        stream_spec.pressure/pressure_scaling, self._steps] + molar_flows
                        )
         return obs
 

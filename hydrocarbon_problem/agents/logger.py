@@ -64,11 +64,16 @@ def plot_history(history):
     elif len(history.keys()) == 0:
         return
     for i, key in enumerate(history):
-        data = pd.Series(history[key])
-        data.replace([np.inf, -np.inf], np.nan, inplace=True)
-        if sum(data.isna()) > 0:
-            data = data.dropna()
-            print(f"NaN encountered in {key} history")
-        axs[i].plot(data)
-        axs[i].set_title(key)
+        if type(history[key][0]) in [int, float, np.ndarray]:
+            if isinstance(history[key][0], np.ndarray):
+                if history[key][0].shape not in [(),(1,)]:
+                    continue
+            data = pd.Series(history[key])
+
+            data.replace([np.inf, -np.inf], np.nan, inplace=True)
+            if sum(data.isna()) > 0:
+                data = data.dropna()
+                print(f"NaN encountered in {key} history")
+            axs[i].plot(data)
+            axs[i].set_title(key)
     plt.tight_layout()

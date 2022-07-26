@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 import numpy as np
 # from sqlalchemy import column
 from hydrocarbon_problem.api.Simulation import Simulation
@@ -116,7 +116,7 @@ class AspenAPI(BaseAspenDistillationAPI):
         self._flowsheet.BLK_RefluxRatio(column_input_specification.reflux_ratio)
         self._flowsheet.BLK_ReboilerRatio(column_input_specification.reboil_ratio)
 
-    def solve_flowsheet(self, stream_input, column_input) -> int:
+    def solve_flowsheet(self, stream_input, column_input) -> Union[int, int]:
         self._flowsheet.Run()
         if not self._flowsheet.pywin_error:
             self.contact = 1
@@ -129,7 +129,7 @@ class AspenAPI(BaseAspenDistillationAPI):
             # self.set_input_stream_specification(stream_specification=stream_input)
             # self.set_column_specification(column_input_specification=column_input)
             # self._flowsheet.Run()
-        return self.contact
+        return self.contact, self._flowsheet.converged
 
     def restart_aspen(self) -> None:
         self._flowsheet.restart(visibility=False, suppress=True, max_iterations=100)

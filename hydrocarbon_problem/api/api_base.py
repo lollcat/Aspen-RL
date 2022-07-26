@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 import abc
 
 from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpecification, \
@@ -31,7 +31,7 @@ class BaseAspenDistillationAPI(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def solve_flowsheet(self, stream_input:StreamSpecification, column_input:ColumnInputSpecification) -> None:
+    def solve_flowsheet(self, stream_input:StreamSpecification, column_input:ColumnInputSpecification) -> Union[int, int]:
         """Solves the flowsheet. Returns True if the solve was successful."""
         raise NotImplementedError
 

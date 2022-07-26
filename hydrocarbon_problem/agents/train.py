@@ -1,3 +1,5 @@
+from typing import Optional
+
 import jax
 import numpy as np
 import optax
@@ -30,6 +32,8 @@ def train(n_iterations: int,
           key = jax.random.PRNGKey(0),
           n_sac_updates_per_episode: int = 3,
           batch_size: int = 32,
+          agent_checkpoint_load_dir: Optional[str] = None,
+          buffer_state_load_dir: Optional[str] = None,
           do_checkpointing: bool = False,  # if we save checkpoints
           iter_per_checkpoint: int = 100,  # how often we save checkpoints
           set_agent: str = "random"
@@ -40,6 +44,23 @@ def train(n_iterations: int,
     buffer_select_action = partial(agent.select_action, agent.state)
     buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
 
+    if agent_checkpoint_load_dir:
+        print(os.getcwd())
+        os.chdir("C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates2")
+        agent = agent._replace(state=restore_from_path(agent_checkpoint_load_dir))
+
+    if buffer_state_load_dir:
+        print(os.getcwd())
+        buffer_state = restore_from_path(buffer_state_load_dir)
+
+    DEBUG = True
+    if DEBUG:
+        batch = buffer.sample(buffer_state, subkey, batch_size)
+        # chex.assert_tree_all_finite(batch)
+
+        # update the agent using the sampled batch
+        # Now we can step through the update function for debugging.
+        agent_state, info = agent.learner._unjitted_update_step(agent.state, batch)
 
     today = date.today()
     current_time = datetime.now()
@@ -89,8 +110,10 @@ def train(n_iterations: int,
 
             step_metrics = env.info
             step_metrics["Contact"] = env.contact
+            step_metrics["Converged"] = env.converged
 
-            if env.contact:
+            if env.contact and (env.converged == 0 or env.converged == 2):
+                step_metrics["FeedStream"] = step_metrics["FeedStream"]._replace(episode=i)
                 step_metrics["TopStream"] = step_metrics["TopStream"]._replace(episode=i)
                 step_metrics["BottomStream"] = step_metrics["BottomStream"]._replace(episode=i)
                 step_metrics["Column"] = step_metrics["Column"]._replace(episode=i)
@@ -98,24 +121,22 @@ def train(n_iterations: int,
                 step_metrics["Column"] = step_metrics["Column"]._replace(height=step_metrics["Height"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(n_stages=step_metrics["n_stages"])
                 step_metrics["Column"] = step_metrics["Column"]._replace(column_number=counter)
-                logger.write(step_metrics)
             else:
+                step_metrics["FeedStream"] = step_metrics["FeedStream"]._replace(episode=i)
                 step_metrics["Unconverged"] = step_metrics
-                logger.write(step_metrics)
+            logger.write(step_metrics)
             counter += 1
 
         # save useful metrics
-        if env.contact:
-            metrics = {"episode_return": episode_return,
-                       "episode_time": time.time() - episode_start_time}
-            logger.write(metrics)
-            print(f"Episode return: {episode_return}")
-        else:
-            pass
+        metrics = {"episode_return": episode_return,
+                   "episode_time": time.time() - episode_start_time}
+        logger.write(metrics)
+        print(f"Episode return: {episode_return}")
+
         pbar.set_description(f"episode return of {episode_return:.2f}")
 
         # now update the SAC agent
-        if agent_type == "sac":
+        if set_agent == "sac":
             sac_start_time = time.time()
             for j in range(n_sac_updates_per_episode):
                 # sample a batch from the replay buffer
@@ -136,9 +157,10 @@ def train(n_iterations: int,
 
         if do_checkpointing:
             if i % iter_per_checkpoint == 0:
+                os.getcwd()
                 print(f"saving checkpoint at iteration {i}")
-                save_to_path(f"agent_state_iter{i}", agent.state)
-                save_to_path(f"buffer_state_iter_{i}", buffer_state)
+                save_to_path(f"agent_state_iter{i}test", agent.state)
+                save_to_path(f"buffer_state_iter_{i}test", buffer_state)
 
 
     plot_history(logger.history)
@@ -170,7 +192,8 @@ if __name__ == '__main__':
     batch_size = 32
     n_sac_updates_per_episode = 1
     do_checkpointing = True
-    iter_per_checkpoint = 100 # how often to save checkpoints
+    iter_per_checkpoint = 50 # how often to save checkpoints
+    agent_checkpoint_load_dir = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates"
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
@@ -201,5 +224,6 @@ if __name__ == '__main__':
         n_iterations=n_iterations, agent=agent, buffer=buffer, env=env, key=rng_key,
         batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
         do_checkpointing=do_checkpointing,
-        iter_per_checkpoint=iter_per_checkpoint, set_agent=agent_type
+        iter_per_checkpoint=iter_per_checkpoint, set_agent=agent_type,
+        agent_checkpoint_load_dir=agent_checkpoint_load_dir
           )
