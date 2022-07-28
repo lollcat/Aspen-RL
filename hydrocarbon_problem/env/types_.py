@@ -11,7 +11,7 @@ SingleStreamObservation = np.array
 class TimestepObservation(NamedTuple):
     """The observation used within the Timestep returned by the environment step."""
     # the states created by the current action.
-    created_states: Tuple[SingleStreamObservation, SingleStreamObservation]
+    created_states: Tuple[SingleStreamObservation, SingleStreamObservation, int]
     # the next state that will be acted upon
     upcoming_state: SingleStreamObservation
 

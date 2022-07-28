@@ -106,7 +106,7 @@ def test(n_episodes: int = 2, use_fake_api: bool = False):
 
 
 if __name__ == '__main__':
-    use_fake_api = False
+    use_fake_api = True
     if use_fake_api:
         test(100)
     else:

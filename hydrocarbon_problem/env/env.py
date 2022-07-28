@@ -72,8 +72,9 @@ class AspenDistillation(dm_env.Environment):
         self.contact = False
         self.converged = 0
         self._blank_state = np.zeros(self.observation_spec().shape)
-        self.terminate_on_flowsheet_fail = True
+        self.terminate_on_flowsheet_fail = False
         self.info = {}
+        self.once_per_episode_info = {}
 
     def observation_spec(self) -> specs.Array:
         input_obs = self._stream_to_observation(self._initial_feed)
@@ -149,10 +150,11 @@ class AspenDistillation(dm_env.Environment):
                 upcoming_state=upcoming_stream_obs)
             done = Done((self.tops_stream.is_outlet, self.bottoms_stream.is_outlet), done_overall)
         elif self.contact == 0 or self.converged == 1:
+            assert not (self.contact == 0 and self.converged == 1)
             self.info["Column_error"] = column_input_spec
             self._manage_environment_internals_no_act()
             done_overall = self.get_done_overall()
-            reward = -2.0
+            reward = -10.0 if self.converged == 1 else 0
             if not done_overall:
                 upcoming_stream = self._get_upcoming_stream()
                 upcoming_stream_obs = self._stream_to_observation(upcoming_stream)
@@ -167,10 +169,14 @@ class AspenDistillation(dm_env.Environment):
                         np.array(1-done.overall))
         timestep_type = dm_env.StepType.MID if not done_overall else dm_env.StepType.LAST
         timestep = dm_env.TimeStep(step_type=timestep_type, observation=observation,
-                                   reward=reward/100, discount=discount)  # reward 100M€
+                                   reward=reward, discount=discount)
+        if timestep.last():
+            self.once_per_episode_info["Streams yet to be acted on"] = len(self._stream_numbers_yet_to_be_acted_on)
 
         if choose_separate:
             self.info.update(column_input_spec._asdict())
+            if self._steps==0:
+                self.once_per_episode_info.update({key + "First stream":value for key,value in column_input_spec._asdict().items()})
         return timestep
 
 
@@ -240,6 +246,7 @@ class AspenDistillation(dm_env.Environment):
         self.info["Column"] = column
 
 
+
     def _manage_environment_internals_no_act(self):
         # If no action is taken then no new streams are added to the stream table, so currently
         # this function is just an empty placeholder.
@@ -258,7 +265,9 @@ class AspenDistillation(dm_env.Environment):
     def _stream_specification_to_stream(self, stream_spec: StreamSpecification) -> Stream:
         """Convert StreamSpecification object into a StreamObject for a recently added stream. This
         function also gives the stream a unique number."""
+        is_outlet_forced = len(self._stream_numbers_yet_to_be_acted_on) > (self._max_n_steps - self._steps)
         is_product, is_outlet = self.flowsheet_api.stream_is_product_or_outlet(stream_spec, self.product_spec)
+        is_outlet = is_outlet or is_outlet_forced
         if is_product == True:
             stream_value = self.flowsheet_api.get_stream_value(stream_spec, self.product_spec)
         if is_product == False:
@@ -275,7 +284,7 @@ class AspenDistillation(dm_env.Environment):
                          column_output_spec: ColumnOutputSpecification) -> float:
         """Calculate potential revenue from selling top streams and bottoms streams, and compare
         relative to selling the input stream, subtract TAC and normalise."""
-
+        reward_scaler = 100  # reward 100M€
         total_annual_cost, col_info = self.flowsheet_api.get_column_cost(feed_stream.specification,
                                                   column_input_specification=column_input_spec,
                                                   column_output_specification=column_output_spec)
@@ -283,7 +292,7 @@ class AspenDistillation(dm_env.Environment):
         self.info["Revenue"] = total_annual_revenue
         self.info["Diameter"] = col_info[1]
         self.info["Height"] = col_info[0]
-        return total_annual_revenue - total_annual_cost
+        return (total_annual_revenue - total_annual_cost)/reward_scaler
 
 
     def _stream_to_observation(self, stream: Stream) -> np.array:

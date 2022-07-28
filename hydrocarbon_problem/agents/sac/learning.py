@@ -81,6 +81,7 @@ class SACLearner(acme.Learner):
       logger: logger object to be used by learner.
       num_sgd_steps_per_step: number of sgd steps to perform per learner 'step'.
     """
+    self.networks = networks
     adaptive_entropy_coefficient = entropy_coefficient is None
     if adaptive_entropy_coefficient:
       # alpha is the temperature parameter that determines the relative
@@ -303,3 +304,31 @@ class SACLearner(acme.Learner):
 
   def restore(self, state: TrainingState):
     self._state = state
+
+  def blob(self, state, batch):
+    print(self.networks)
+    q_params: networks_lib.Params = state.q_params
+    policy_params: networks_lib.Params = state.policy_params
+    target_q_params: networks_lib.Params = state.target_q_params
+    alpha: jnp.ndarray = state.alpha_params
+    transitions: types.Transition = batch
+    key: networks_lib.PRNGKey = state.key
+    self.learner._unjitted_update_step(state, batch)
+    q_old_action = self.networks.q_network.apply(
+        q_params, transitions.observation, transitions.action)
+    next_dist_params = self.networks.policy_network.apply(
+        policy_params, transitions.next_observation)
+    next_action = self.networks.sample(next_dist_params, key)
+    next_log_prob = self.networks.log_prob(next_dist_params, next_action)
+    next_q = self.networks.q_network.apply(
+        target_q_params, transitions.next_observation, next_action)
+    next_v = jnp.min(next_q, axis=-1) - alpha * next_log_prob
+    reward_scale = 1
+    discount = 0.99
+    target_q = jax.lax.stop_gradient(transitions.reward * reward_scale +
+                                     transitions.discount * discount * next_v)
+    q_error = q_old_action - jnp.expand_dims(target_q, -1)
+    q_loss = 0.5 * jnp.mean(jnp.square(q_error))
+    info = {"critic_loss__target_q_mean": jnp.mean(target_q),
+            "critic_loss__next_log_prob_mean": jnp.mean(next_log_prob),
+            "critic_loss__next_q_mean": jnp.mean(next_q)}

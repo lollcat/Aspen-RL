@@ -122,13 +122,7 @@ class AspenAPI(BaseAspenDistillationAPI):
             self.contact = 1
         if self._flowsheet.pywin_error:
             self.contact = 0
-            # print(f"Stream input: {stream_input}")
-            # print(f"Column input: {column_input}")
-            # print("No contact with Aspen, restart Aspen and store input parameters")
             self.restart_aspen()
-            # self.set_input_stream_specification(stream_specification=stream_input)
-            # self.set_column_specification(column_input_specification=column_input)
-            # self._flowsheet.Run()
         return self.contact, self._flowsheet.converged
 
     def restart_aspen(self) -> None:

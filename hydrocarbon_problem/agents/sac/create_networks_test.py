@@ -77,6 +77,6 @@ if __name__ == '__main__':
 
     env = AspenDistillation(flowsheet_api=FakeDistillationAPI())
     sac_net = create_sac_networks(env=env,
-                        policy_hidden_units = (3,), q_value_hidden_units = (10, 10))
+                        policy_hidden_units = (3,3), q_value_hidden_units = (10, 10))
     test_critic_net(env, sac_net)
     test_policy_net(env, sac_net)

@@ -38,40 +38,57 @@ def train(n_iterations: int,
           iter_per_checkpoint: int = 100,  # how often we save checkpoints
           set_agent: str = "random"
           ):
+    today = date.today()
+    current_time = datetime.now()
+    current_time = current_time.strftime("%H-%M-%S")
+    today = today.strftime("%Y-%m-%d")
+
+    checkpoint_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/checkpoint"
+    logger_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/logger_{n_iterations}_-5euro_NN32_64_LR1e-4"
+
+    isExist = os.path.exists(path=checkpoint_path)
+    if not isExist:
+        os.makedirs(checkpoint_path)
 
     # initialise the buffer state (filling it with random experience)
-    key, subkey = jax.random.split(key)
-    buffer_select_action = partial(agent.select_action, agent.state)
-    buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
 
     if agent_checkpoint_load_dir:
         print(os.getcwd())
         os.chdir("C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates2")
         agent = agent._replace(state=restore_from_path(agent_checkpoint_load_dir))
 
+    key, subkey = jax.random.split(key)
+
     if buffer_state_load_dir:
         print(os.getcwd())
         buffer_state = restore_from_path(buffer_state_load_dir)
+    else:
 
-    DEBUG = True
+        buffer_select_action = partial(agent.select_action, agent.state)
+        buffer_state = buffer.init(subkey, env, select_action=buffer_select_action)
+
+    DEBUG = False
     if DEBUG:
         batch = buffer.sample(buffer_state, subkey, batch_size)
         # chex.assert_tree_all_finite(batch)
 
         # update the agent using the sampled batch
         # Now we can step through the update function for debugging.
+        agent_state, info = agent.learner.blob(agent.state,batch)
         agent_state, info = agent.learner._unjitted_update_step(agent.state, batch)
 
-    today = date.today()
-    current_time = datetime.now()
-    current_time = current_time.strftime("%H-%M-%S")
-    today = today.strftime("%Y-%m-%d")
 
-    if set_agent == "sac":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}-{current_time}_logging_hist_SAC_PID"
-                                                                f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
-    elif set_agent == "random":
-        logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
+
+    # if set_agent == "sac":
+    # path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID_batch_and_NN_64_LR_1e-4"
+    # os.chdir(f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID")
+    #          #             f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl"
+    #          # f"./results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID"
+    #          #             f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
+    # print(os.getcwd())
+    logger = ListLogger(save_period=1, save=True, save_path=f"{logger_path}.pkl")
+    # elif set_agent == "random":
+    #     logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -130,6 +147,7 @@ def train(n_iterations: int,
         # save useful metrics
         metrics = {"episode_return": episode_return,
                    "episode_time": time.time() - episode_start_time}
+        metrics = metrics.update(env.once_per_episode_info)
         logger.write(metrics)
         print(f"Episode return: {episode_return}")
 
@@ -157,7 +175,8 @@ def train(n_iterations: int,
 
         if do_checkpointing:
             if i % iter_per_checkpoint == 0:
-                os.getcwd()
+                print(os.getcwd())
+                os.chdir(checkpoint_path)
                 print(f"saving checkpoint at iteration {i}")
                 save_to_path(f"agent_state_iter{i}test", agent.state)
                 save_to_path(f"buffer_state_iter_{i}test", buffer_state)
@@ -180,7 +199,15 @@ if __name__ == '__main__':
         # If we don't want to print warnings.
         # Should be used with care.
         import logging
-        os.chdir("results")
+        current_time = datetime.now()
+        current_time = current_time.strftime("%H-%M-%S")
+        today = date.today()
+        today = today.strftime("%Y-%m-%d")
+        path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}"
+        isExist = os.path.exists(path=path)
+        if not isExist:
+            os.makedirs(path)
+        # os.chdir("results")
         logger = logging.getLogger("root")
 
         class CheckTypesFilter(logging.Filter):
@@ -188,13 +215,13 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 3000
+    n_iterations = 6000
     batch_size = 32
     n_sac_updates_per_episode = 1
     do_checkpointing = True
-    iter_per_checkpoint = 50 # how often to save checkpoints
-    agent_checkpoint_load_dir = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates"
-
+    iter_per_checkpoint = 100  # how often to save checkpoints
+    agent_checkpoint_load_dir = None  # "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-27-17-01-00/checkpoint/agent_state_iter2600test"
+    buffer_checkpoint_load_dir = None  # "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-27-17-01-00/checkpoint/buffer_state_iter_2600test"
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(),  # FakeDistillationAPI(),  # FakeDistillationAPI(), AspenAPI()
                             product_spec=ProductSpecification(purity=0.95),
@@ -216,7 +243,7 @@ if __name__ == '__main__':
         agent = create_random_agent(env)
 
     min_sample_length = batch_size * 10
-    max_buffer_length = batch_size*100000
+    max_buffer_length = batch_size * 100000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 
@@ -225,5 +252,6 @@ if __name__ == '__main__':
         batch_size=batch_size, n_sac_updates_per_episode=n_sac_updates_per_episode,
         do_checkpointing=do_checkpointing,
         iter_per_checkpoint=iter_per_checkpoint, set_agent=agent_type,
-        agent_checkpoint_load_dir=agent_checkpoint_load_dir
+        agent_checkpoint_load_dir=agent_checkpoint_load_dir,
+        buffer_state_load_dir=buffer_checkpoint_load_dir
           )

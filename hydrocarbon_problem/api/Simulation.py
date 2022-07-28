@@ -226,18 +226,11 @@ class Simulation():
             M = [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(2).Value,
                  self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages-1)).Value,
                  self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages-1)).Value]
-            # index = [i for i, v in enumerate(M) if v==None]
-            # if len(index) > 0:
-            #     for r in range(index):
-            #         M[r] = 0.0
+
         elif feed_stage != N_stages:
             M = [self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(2).Value,
                  self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(feed_stage)).Value,
                  self.BLK.Elements("B1").Elements("Output").Elements("MW_GAS").Elements(str(N_stages - 1)).Value]
-            # index = [i for i, v in enumerate(M) if v == None]
-            # if len(index) > 0:
-            #     for r in range(index):
-            #         M[r] = 0.0
         return M  # g/mol
 
     def BLK_Get_Column_Stage_Temperatures_Short(self, Nstages, feed_stage):
@@ -253,14 +246,15 @@ class Simulation():
     def Run(self):
         self.tries = 0
         while self.tries != 2:
+            self.AspenSimulation.Reinit()
             start = time.time()
-            # self.AspenSimulation.Engine.Run2()
             try:
                 self.AspenSimulation.Engine.Run2()
             # """"Implement com_error exception, when encountered try self.AspenSimulation.Reinit()"""
             except pywintypes.com_error:  # pywintypes.com_error as error:
                 print("No contact, pywintypes.com_error")
                 self.pywin_error = True
+                self.converged = -1
                 break
             self.duration = time.time() - start
             self.converged = self.AspenSimulation.Tree.Elements("Data").Elements("Blocks").Elements(
@@ -268,9 +262,10 @@ class Simulation():
             if self.converged == 0 or self.converged == 2:
                 break
             else:
-                print("Aspen Error")
                 time.sleep(1)
                 self.tries += 1
+            if self.tries == 1 and self.converged == 1:
+                print("Aspen convergence error")
             self.info['Convergence'] = self.converged
 
 
@@ -302,10 +297,10 @@ class Simulation():
             else:
                 print("Wait to terminate Aspen")
                 time.sleep(2)
-        self.running_pid, self.pid_info = self.pid_com_v2(process_name="AspenPlus", instance='old')
+        self.running_pid = self.pid_com_v2(process_name="AspenPlus", instance='old')
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        self.pid, self.pid_info = self.pid_com_v2(process_name="AspenPlus", instance="new")
+        self.pid = self.pid_com_v2(process_name="AspenPlus", instance="new")
         print(f"PID duration = {time.time() - start}")
         self.pywin_error = False
         # os.system("taskkill /f /im AspenPlus.exe")

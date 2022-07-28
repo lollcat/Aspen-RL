@@ -12,32 +12,35 @@ if __name__ == '__main__':
     current_time = now.strftime("%H_%M_%S")
     today = date.today()
     print(os.getcwd())
-    name = "2022-07-25-15-54-53_logging_hist_SAC_PID_3000_batch_and_NN_64_LR_1e-4.pkl"
+    path = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-27-17-01-00/logger_3000_-10euro_NN32_64_LR1e-4"
+    save_location = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-27-17-01-00"
+    name = "logger_3000_-10euro_NN32_64_LR1e-4"
     if agent == "sac":
-        os.chdir("../results/SAC")
+        os.chdir("../results/2022-07-27-15-03-47")
         # os.chdir("../agents/sac")
         # path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/Fake_API.pkl"
-        path_to_saved_hist = ('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates/results/2022-07-25-15-54-53_logging_hist_SAC_PID_3000_batch_and_NN_64_LR_1e-4.pkl')
+        path_to_saved_hist = (f'{path}.pkl')
         # path_to_saved_hist =(f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation" \
         #                      f"/results/{name}.pkl")  # path to where history was saved
     elif agent == "random":
         os.chdir("../results/Random")
-        path_to_saved_hist = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/" \
-                             f"results/{name}.pkl"
-
+        # path_to_saved_hist = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/" \
+        #                      f"results/{name}.pkl"
+        path_to_saved_hist = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/agent_test.pkl"
         # "../results/logging_hist_random_agent.pkl"
     hist = pickle.load(open(path_to_saved_hist, "rb"))
 
     hist_keys = list(hist.keys())
-    agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[9:-6]}
+    # agent_spec = {agent_par: hist[agent_par] for agent_par in hist_keys[9:-6]}
     # a=agent_spec["Contact"]
     # a[0] = 1.0
     # agent_spec["Contact"] = a
     # agent_spec.pop("Unconverged")
-    col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:4]}
+    # col_spec = {col_par: hist[col_par] for col_par in hist.keys() & hist_keys[:4]}
 
-    plot_history(agent_spec)
-    # plot_history(hist)
+    # plot_history(agent_spec)
+    plot_history(hist)
+    os.chdir(save_location)
     plt.savefig(f'{name}.pdf')
     plt.show()
 
