@@ -9,10 +9,10 @@ from hydrocarbon_problem.api.types_ import StreamSpecification, ColumnInputSpeci
 
 
 class AspenAPI(BaseAspenDistillationAPI):
-    def __init__(self, max_solve_iterations: int = 100,
+    def __init__(self, visibility=False, suppress=False, max_solve_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
-        self._flowsheet: Simulation = Simulation(VISIBILITY=False,
-                                                 SUPPRESS= True,
+        self._flowsheet: Simulation = Simulation(VISIBILITY=visibility,
+                                                 SUPPRESS= suppress,
                                                  max_iterations=max_solve_iterations,
                                                  flowsheet_path=flowsheet_path)
         self._feed_name: str = "S1"
@@ -147,10 +147,13 @@ class AspenAPI(BaseAspenDistillationAPI):
             stage_temp=column_output_specification.temperature_per_stage,
             feed_stage=column_input_specification.feed_stage_location)
 
-        operating = self._flowsheet.CAL_Annual_OperatingCost(column_output_specification.reboiler_duty,
-                                                             column_output_specification.condenser_duty)
+        operating_cost_cnd, operating_cost_rbl = self._flowsheet.CAL_Annual_OperatingCost(reboiler_duty=column_output_specification.reboiler_duty,
+                                                             condenser_duty=column_output_specification.condenser_duty,
+                                                             tops_temperature=t_condenser)
 
-        total_cost = invest+operating
+        total_cost = invest+operating_cost_cnd+operating_cost_rbl
+        col_info.append(operating_cost_cnd)
+        col_info.append(operating_cost_rbl)
 
         return total_cost, col_info
 

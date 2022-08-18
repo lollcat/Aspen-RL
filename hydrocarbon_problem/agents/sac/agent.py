@@ -3,6 +3,7 @@ from typing import Tuple, Dict, Iterator, NamedTuple, Callable
 from hydrocarbon_problem.agents.base import SelectAction, Action, AgentUpdate, Transition,\
     Observation
 import jax
+import jax.numpy as jnp
 import numpy as np
 import optax
 import chex
@@ -43,11 +44,18 @@ def create_agent(networks: SACNetworks,
                            random_key: chex.PRNGKey):
             """Select action with jit"""
             dist_params = networks.policy_network.apply(agent_params.policy_params, observation)
-            action = networks.sample(dist_params, random_key)
+            action = networks.sample(dist_params, random_key)  # [1]
+            q_value = networks.q_network.apply(agent_params.q_params, observation, action)
+
+            discrete_action = jnp.where(q_value.max() > 0.0, 1, 0)
+            continuous_action = action[1]
+            action = discrete_action, continuous_action
             return action
         action = _select_action(agent_params, observation, random_key)
         # Convert into numpy array as expected.
-        action = np.asarray(action[0]), np.asarray(action[1])
+        #continuous_action = action[1]
+        action = action[0], action[1]
+        # action = np.asarray(continuous_action[0]), np.asarray(continuous_action[1])#
         return action
 
 

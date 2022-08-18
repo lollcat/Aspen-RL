@@ -58,7 +58,7 @@ class SACLearner(acme.Learner):
       reward_scale: float = 1.0,
       discount: float = 0.99,
       entropy_coefficient: Optional[float] = None,  # None = SAC (adaptive alpha)  0.0 = DDPG
-      target_entropy: float = 0,
+      target_entropy: float = -2,  # 0 or -dim[A]
       counter: Optional[counting.Counter] = None,
       logger: Optional[loggers.Logger] = None,
       num_sgd_steps_per_step: int = 1):
@@ -313,7 +313,7 @@ class SACLearner(acme.Learner):
     alpha: jnp.ndarray = state.alpha_params
     transitions: types.Transition = batch
     key: networks_lib.PRNGKey = state.key
-    self.learner._unjitted_update_step(state, batch)
+    self._unjitted_update_step(state, batch)
     q_old_action = self.networks.q_network.apply(
         q_params, transitions.observation, transitions.action)
     next_dist_params = self.networks.policy_network.apply(

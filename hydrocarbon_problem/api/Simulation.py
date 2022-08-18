@@ -14,12 +14,11 @@ class Simulation():
 
     def __init__(self, VISIBILITY, SUPPRESS, max_iterations: int = 100,
                  flowsheet_path: str = "HydrocarbonMixture.bkp"):
-        start = time.time()
-        self.running_pid = self.pid_com_v2(process_name="blob",instance="old")
+        print("Start Aspen")
+        # start = time.time()
+        # self.running_pid = self.pid_com_v2(process_name="blob",instance="old")  # , visibility=VISIBILITY, suppress=SUPPRESS, path=flowsheet_path, max_iterations=max_iterations)
         # self.running_pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance='old')
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        self.pid = self.pid_com_v2(process_name="blob",instance="new")
-        print(f"PID duration = {time.time() - start}")
         # self.pid, self.pid_info = self.pid_com(process_name="AspenPlus", instance="new")
         os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
         self.AspenSimulation.InitFromArchive2(os.path.abspath(flowsheet_path))
@@ -27,6 +26,8 @@ class Simulation():
         self.AspenSimulation.SuppressDialogs = SUPPRESS
         self.max_iterations = max_iterations
         self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
+        # self.pid = self.pid_com_v2(process_name="blob", instance="new")  #, visibility=VISIBILITY, suppress=SUPPRESS, path=flowsheet_path, max_iterations=max_iterations)
+        # print(f"PID duration = {time.time() - start}")
         self.duration = 0
         self.converged = False
         self.tries = 0
@@ -63,7 +64,7 @@ class Simulation():
         # elif instance == 'new':
         #     return pid_info, blob
 
-    def pid_com_v2(self, process_name, instance):
+    def pid_com_v2(self, process_name, instance):  # , path, visibility, suppress, max_iterations):
         notepad_stat = False
         while not notepad_stat:
             os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
@@ -79,6 +80,11 @@ class Simulation():
             elif pid_check == "N" and instance == 'new':
                 PIDs = self.retrieve_pids(process_name=process_name)
                 aspen_id = self.set_aspen_pid(running_pid=self.running_pid, new_pids=PIDs)
+                # self.AspenSimulation.InitFromArchive2(os.path.abspath(path=path))
+                # self.AspenSimulation.Visible = visibility
+                # self.AspenSimulation.SuppressDialogs = suppress
+                # self.max_iterations = max_iterations
+                # self.BLK.Elements("B1").Elements("Input").Elements("MAXOL").Value = self.max_iterations
                 with open('PID_check.txt', 'w') as file:
                     file.write("Y")
                     file.close()
@@ -270,38 +276,38 @@ class Simulation():
 
 
     def restart(self, visibility, suppress, max_iterations):
-        # x = win32.Dispatch("Apwn.Document")
-        # os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        # # print(os.getcwd())
-        # x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        # x.Visible = visibility
-        # x.SuppressDialogs = suppress
-        # self.AspenSimulation.Close()
-        terminate = False
-        start = time.time()
-        while not terminate:
-            os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
-            with open('PID_check.txt', 'r') as file:
-                pid_check = file.read().rstrip()
-            if pid_check == "Y":
-                with open('PID_check.txt', 'w') as file:
-                    file.write("N")
-                    file.close()
-                print(f"Terminate Aspen: {self.pid}")
-                os.kill(self.pid, signal.SIGINT)
-                # psutil.Process.terminate(self.pid)
-                with open('PID_check.txt', 'w') as file:
-                    file.write("Y")
-                    file.close()
-                terminate = True
-            else:
-                print("Wait to terminate Aspen")
-                time.sleep(2)
-        self.running_pid = self.pid_com_v2(process_name="AspenPlus", instance='old')
+        x = win32.Dispatch("Apwn.Document")
+        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
+        # print(os.getcwd())
+        x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        x.Visible = visibility
+        x.SuppressDialogs = suppress
+        self.AspenSimulation.Close()
+        # terminate = False
+        # start = time.time()
+        # while not terminate:
+        #     os.chdir('C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem')
+        #     with open('PID_check.txt', 'r') as file:
+        #         pid_check = file.read().rstrip()
+        #     if pid_check == "Y":
+        #         with open('PID_check.txt', 'w') as file:
+        #             file.write("N")
+        #             file.close()
+        #         print(f"Terminate Aspen: {self.pid}")
+        #         os.kill(self.pid, signal.SIGINT)
+        #         # psutil.Process.terminate(self.pid)
+        #         with open('PID_check.txt', 'w') as file:
+        #             file.write("Y")
+        #             file.close()
+        #         terminate = True
+        #     else:
+        #         print("Wait to terminate Aspen")
+        #         time.sleep(2)
+        # self.running_pid = self.pid_com_v2(process_name="AspenPlus", instance='old')
         del self.AspenSimulation
         self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
-        self.pid = self.pid_com_v2(process_name="AspenPlus", instance="new")
-        print(f"PID duration = {time.time() - start}")
+        # self.pid = self.pid_com_v2(process_name="AspenPlus", instance="new")
+        # print(f"PID duration = {time.time() - start}")
         self.pywin_error = False
         # os.system("taskkill /f /im AspenPlus.exe")
         # self.AspenSimulation = win32.gencache.EnsureDispatch("Apwn.Document")
@@ -332,8 +338,17 @@ class Simulation():
         return n_stages * HETP + H_0
 
     def CAL_LMTD(self, tops_temperature):
-        T_cool_in = 30  # Supply temperature of cooling water [oC]
-        T_cool_out = 40  # Return temperature of cooling water [oC]
+
+        if tops_temperature > 30:
+            T_cool_in = 20
+        elif tops_temperature > -20 and tops_temperature <=30:
+            T_cool_in = -20
+        elif tops_temperature > -45 and tops_temperature <=-20:
+            T_cool_in = -45
+
+        T_cool_out = T_cool_in + 10
+        # T_cool_in = 30  # Supply temperature of cooling water [oC]
+        # T_cool_out = 40  # Return temperature of cooling water [oC]
         if tops_temperature > T_cool_out:
             delta_Tm_cnd = (((tops_temperature - T_cool_in) * (tops_temperature - T_cool_out) * (
                 (tops_temperature - T_cool_in) + (tops_temperature - T_cool_out)) / 2) ** (1 / 3))
@@ -343,22 +358,26 @@ class Simulation():
 
     def CAL_HT_Condenser_Area(self, condenser_duty, tops_temperature):
         K_cnd = 500  # Heat transfer coefficient [W/m2 K]
-        delta_Tm_cnd = self.CAL_LMTD(tops_temperature)
+        delta_Tm_cnd = tops_temperature - 10
+        A_cnd = -condenser_duty / (K_cnd * abs(delta_Tm_cnd))
+        # self.CAL_LMTD(tops_temperature)
         # Tm_type = isinstance(delta_Tm_cnd, float)
-        if delta_Tm_cnd > 0:
-            A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
-        else:
-            A_cnd = 0
+        # if delta_Tm_cnd > 0:
+        #     A_cnd = -condenser_duty / (K_cnd * delta_Tm_cnd)
+        # else:
+        #     A_cnd = 0
         return A_cnd
 
     def CAL_HT_Reboiler_Area(self, reboiler_temperature, reboiler_duty):
         K_rbl = 800  # Heat transfer coefficient [W/m2*K] (800, fixed)
         T_steam = 201  # Temperature of 16 bar steam [°C] (201, fixed)
-        if T_steam < reboiler_temperature:
-            A_rbl = 0
-        else:
-            delta_tm_rbl = T_steam - reboiler_temperature
-            A_rbl = reboiler_duty / (K_rbl * delta_tm_rbl)
+        delta_tm_rbl = T_steam - reboiler_temperature
+        A_rbl = reboiler_duty / (K_rbl * delta_tm_rbl)
+        # if T_steam < reboiler_temperature:
+        #     A_rbl = 0
+        # else:
+        #     delta_tm_rbl = T_steam - reboiler_temperature
+        #     A_rbl = reboiler_duty / (K_rbl * delta_tm_rbl)
         return A_rbl
 
     def CAL_InvestmentCost(self,  n_stages, condenser_duty, reboiler_temperature, reboiler_duty,
@@ -417,28 +436,38 @@ class Simulation():
             print(f"C_inv: {C_inv}")
             print(f"InvestmentCost: {InvestmentCost}")
 
-        column_info = [L, D]
+        column_info = [L, D, A_cnd, A_rbl, C_col, C_int, C_cnd, C_rbl]
 
         return InvestmentCost, column_info
 
-    def CAL_OperatingCost(self, reboiler_duty, condenser_duty):
+    def CAL_OperatingCost(self, reboiler_duty, condenser_duty, tops_temperature):
+        operational_time = 8400
         M = 18  # Molar weight of water [g/mol] (18, fixed)
         c_steam = 18  # Steam price [€/t] (18, fixed)
         c_cw = 0.006  # Cooling water price [€/t] (0.006, fixed)
         delta_hv = 34794  # Molar heat of condensation of 16 bar steam [J/mol] (34794, fixed)
         c_p = 4.2  # Heat capacity of water [kJ/(kg*K)] (4.2, fixed)
-        T_cool_in = 30  # Supply cooling water temperature [°C] (30, fixed)
-        T_cool_out = 40  # Return cooling water temperature [°C] (40, fixed)
-        C_op_rbl = reboiler_duty / 1000000 * M * c_steam * 3600 / delta_hv  # €/h
-        C_op_cnd = -condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
-        C_op = C_op_rbl + C_op_cnd  # €/h
-        return C_op
+        T_cool = tops_temperature - 10
 
-    def CAL_Annual_OperatingCost(self, reboiler_duty, condenser_duty):
-        t_a = 8400
-        OperatingCost = self.CAL_OperatingCost(reboiler_duty, condenser_duty) * t_a / 1000000  # M€/y
-        self.info['OperatingCost'] = OperatingCost
-        return OperatingCost
+        # T_cool_out = T_cool_in + 10
+        # T_cool_in = 30  # Supply cooling water temperature [°C] (30, fixed)
+        # T_cool_out = 40  # Return cooling water temperature [°C] (40, fixed)
+        C_op_rbl = (reboiler_duty / 1000000 * M * c_steam * 3600 / delta_hv) * operational_time / 1000000  # M€/year
+        energy_cnd = operational_time * -condenser_duty / 1000  # kWh/year
+        energy_cost = (6*10**-6) * T_cool - 0.0006 * T_cool + 0.0163  # €/kWh
+        C_op_cnd = energy_cnd * energy_cost / 1000000  # M€/year
+        # C_op_cnd = -condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
+        self.info["Reboil util costs"] = C_op_rbl
+        self.info["Condenser util costs"] = C_op_cnd
+        # C_op = C_op_rbl + C_op_cnd  # M€/year
+
+        return C_op_cnd, C_op_rbl  # M€/year
+
+    def CAL_Annual_OperatingCost(self, reboiler_duty, condenser_duty, tops_temperature):
+        # t_a = 8400
+        OperatingCost_cnd, OperatingCost_rbl = self.CAL_OperatingCost(reboiler_duty, condenser_duty, tops_temperature)  # M€/y
+        # self.info['OperatingCost'] = OperatingCost
+        return OperatingCost_cnd, OperatingCost_rbl
 
     def CAL_stream_value(self, stream_specification,
                          product_specification):  # , component_specifications, molar_flows, stream_component_specifications):

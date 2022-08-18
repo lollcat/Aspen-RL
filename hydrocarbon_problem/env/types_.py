@@ -34,6 +34,7 @@ class Stream(NamedTuple):
     number: int
     value: float
     episode: int
+    separate: bool
 
 
 class Column(NamedTuple):
@@ -45,5 +46,13 @@ class Column(NamedTuple):
     diameter: float
     height: float
     n_stages: int
+    a_cnd: float
+    a_rbl: float
+    cost_col: float
+    cost_int: float
+    cost_cnd: float
+    cost_rbl: float
+    cost_util_cnd: float
+    cost_util_rbl: float
     column_number: int
     episode: int
