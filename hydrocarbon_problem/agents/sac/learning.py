@@ -58,7 +58,7 @@ class SACLearner(acme.Learner):
       reward_scale: float = 1.0,
       discount: float = 0.99,
       entropy_coefficient: Optional[float] = None,  # None = SAC (adaptive alpha)  0.0 = DDPG
-      target_entropy: float = -2,  # 0 or -dim[A]
+      target_entropy: float = -5,  # 0 or -dim[A]
       counter: Optional[counting.Counter] = None,
       logger: Optional[loggers.Logger] = None,
       num_sgd_steps_per_step: int = 1):
@@ -87,7 +87,7 @@ class SACLearner(acme.Learner):
       # alpha is the temperature parameter that determines the relative
       # importance of the entropy term versus the reward.
       log_alpha = jnp.asarray(0., dtype=jnp.float32)
-      alpha_optimizer = optax.adam(learning_rate=3e-4)
+      alpha_optimizer = optax.adam(learning_rate=7.5e-5)
       alpha_optimizer_state = alpha_optimizer.init(log_alpha)
     else:
       if target_entropy:

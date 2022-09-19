@@ -42,8 +42,8 @@ class AspenDistillation(dm_env.Environment):
     def __init__(self,
                  initial_feed_spec: StreamSpecification = DEFAULT_INITIAL_FEED_SPEC,
                  product_spec: ProductSpecification = ProductSpecification(purity=0.95),
-                 n_stages_bounds: Tuple[int, int] = (30, 100),
-                 pressure_bounds: Tuple[float, float] = (0.5, 30),
+                 n_stages_bounds: Tuple[int, int] = (20, 100),
+                 pressure_bounds: Tuple[float, float] = (0.5, 17),
                  reflux_ratio_bounds: Tuple[float, float] = (1, 20.0),
                  max_steps: int = 8,
                  flowsheet_api: Optional[BaseAspenDistillationAPI] = None,
@@ -281,7 +281,7 @@ class AspenDistillation(dm_env.Environment):
                 feed_stage_location = 44
                 reflux_ratio = np.interp(continuous_action[0], [-1, 1], self._reflux_ratio_bounds)
                 reboil_ratio = np.interp(continuous_action[1], [-1, 1], self._reflux_ratio_bounds)
-                condensor_pressure = 1
+                condensor_pressure = 6.6
                 column_spec = ColumnInputSpecification(
                     n_stages=n_stages,
                     feed_stage_location=feed_stage_location,

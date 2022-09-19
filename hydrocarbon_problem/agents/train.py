@@ -44,7 +44,7 @@ def train(n_iterations: int,
     today = today.strftime("%Y-%m-%d")
 
     checkpoint_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/checkpoint"
-    logger_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/small_action_space_RR_BR_logger_{n_iterations}_Reward_scale_{reward_scale}_{punishment}euro_max_Steps_{max_steps}_NN128_LR_3e-4_targ_entr_-2"
+    logger_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
 
     isExist = os.path.exists(path=checkpoint_path)
     if not isExist:
@@ -54,7 +54,7 @@ def train(n_iterations: int,
 
     if agent_checkpoint_load_dir:
         print(os.getcwd())
-        os.chdir("C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates2")
+        # os.chdir("C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates2")
         agent = agent._replace(state=restore_from_path(agent_checkpoint_load_dir))
 
     key, subkey = jax.random.split(key)
@@ -77,18 +77,7 @@ def train(n_iterations: int,
         agent_state, info = agent.learner.blob(agent.state,batch)
         agent_state, info = agent.learner._unjitted_update_step(agent.state, batch)
 
-
-
-    # if set_agent == "sac":
-    # path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID_batch_and_NN_64_LR_1e-4"
-    # os.chdir(f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID")
-    #          #             f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl"
-    #          # f"./results/updates-{today}/results/{today}-{current_time}_logging_hist_SAC_PID"
-    #          #             f"_{n_iterations}_batch_and_NN_64_LR_1e-4.pkl")
-    # print(os.getcwd())
     logger = ListLogger(save_period=1, save=True, save_path=f"{logger_path}.pkl")
-    # elif set_agent == "random":
-    #     logger = ListLogger(save_period=1, save=True, save_path=f"./results/{today}_{current_time}_logging_hist_random_agent_{n_iterations}_scaled_reward.pkl")
 
     pbar = tqdm(range(n_iterations))
     # now run the training loop
@@ -237,21 +226,21 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 6000
-    reward_scale = 100
+    n_iterations = 20000
+    reward_scale = 10
     punishment = -10
-    max_steps = 8
+    max_steps = 4
     batch_size = 32
-    n_sac_updates_per_episode = 1
+    n_sac_updates_per_episode = 4
     do_checkpointing = True
-    iter_per_checkpoint = 100  # how often to save checkpoints
-    agent_checkpoint_load_dir = None  # "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-28-22-08-07/checkpoint/agent_state_iter2900test"
-    buffer_checkpoint_load_dir = None  # "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-07-28-22-08-07/checkpoint/buffer_state_iter_2900test"
+    iter_per_checkpoint = 500  # how often to save checkpoints
+    agent_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\agent_state_iter10000test"  # None
+    buffer_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\buffer_state_iter_10000test"  # None
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
     env = AspenDistillation(flowsheet_api=AspenAPI(visibility=False, suppress=True, max_solve_iterations=100),  # FakeDistillationAPI(),
                             product_spec=ProductSpecification(purity=0.95),
-                            max_steps=max_steps, small_action_space=True, reward_scale=reward_scale, punishment=punishment)
+                            max_steps=max_steps, small_action_space=False, reward_scale=reward_scale, punishment=punishment)
 
     if agent_type == "sac":
         sac_net = create_sac_networks(env=env,
@@ -269,7 +258,7 @@ if __name__ == '__main__':
         agent = create_random_agent(env)
 
     min_sample_length = batch_size * 10
-    max_buffer_length = batch_size * 100000
+    max_buffer_length = batch_size * 10000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 

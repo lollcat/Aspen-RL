@@ -276,13 +276,13 @@ class Simulation():
 
 
     def restart(self, visibility, suppress, max_iterations):
-        x = win32.Dispatch("Apwn.Document")
-        os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
-        # print(os.getcwd())
-        x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
-        x.Visible = visibility
-        x.SuppressDialogs = suppress
-        self.AspenSimulation.Close()
+        # x = win32.Dispatch("Apwn.Document")
+        # os.chdir(r'C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\AspenSimulation')
+        # # print(os.getcwd())
+        # x.InitFromArchive2(os.path.abspath("HydrocarbonMixture.bkp"))
+        # x.Visible = visibility
+        # x.SuppressDialogs = suppress
+        # self.AspenSimulation.Close()
         # terminate = False
         # start = time.time()
         # while not terminate:
@@ -454,7 +454,7 @@ class Simulation():
         # T_cool_out = 40  # Return cooling water temperature [°C] (40, fixed)
         C_op_rbl = (reboiler_duty / 1000000 * M * c_steam * 3600 / delta_hv) * operational_time / 1000000  # M€/year
         energy_cnd = operational_time * -condenser_duty / 1000  # kWh/year
-        energy_cost = (6*10**-6) * T_cool - 0.0006 * T_cool + 0.0163  # €/kWh
+        energy_cost = (6*10**-6) * (T_cool**2) - 0.0006 * T_cool + 0.0163  # €/kWh
         C_op_cnd = energy_cnd * energy_cost / 1000000  # M€/year
         # C_op_cnd = -condenser_duty / 1000000 * c_cw * 3600 / (c_p * (T_cool_out - T_cool_in))  # €/h
         self.info["Reboil util costs"] = C_op_rbl

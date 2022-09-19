@@ -24,9 +24,9 @@ def create_random_agent(env: AspenDistillation) -> Tuple[SelectAction, AgentUpda
         """Randomly choose an action."""
         del observation, agent_params
         discrete_action_key, continuous_action_key = jax.random.split(random_key)
-        # discrete_action = jax.random.choice(key=discrete_action_key,
-        #                                            a=jnp.arange(discrete_spec.num_values, dtype=int))
-        discrete_action = True
+        discrete_action = jax.random.choice(key=discrete_action_key,
+                                                   a=jnp.arange(discrete_spec.num_values, dtype=int))
+        # discrete_action = True
         continuous_action = jax.random.uniform(key=continuous_action_key,
                                                shape=continuous_spec.shape,
                                                minval=continuous_spec.minimum,

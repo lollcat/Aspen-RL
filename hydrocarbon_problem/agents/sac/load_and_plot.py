@@ -9,99 +9,492 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     agent = "sac"
-    column_table = True
-    stream_table = True
+    load_two_hists = True
+    create_png = True
+    column_table = False
+    stream_table = False
     moving_average = False
-    reward_scale = 100
+    reward_scale = 10
     version = "new"
     now = datetime.now()
     current_time = now.strftime("%H_%M_%S")
     today = date.today()
     print(os.getcwd())
-    path = r"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-08-18-16-34-41/logger_6000_Reward_scale_100_-10euro_max_Steps_8_NN256_LR_3e-4_SACPAPER"
-    save_location = r"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/2022-08-18-16-34-41"
-    name = "logger_6000_Reward_scale_100_-10euro_max_Steps_8_NN256_LR_3e-4_SACPAPER"
+
+    path = r"../results/2022-09-02-12-04-34\SAC_ActionSpace_Full_basecase_bounds_logger_20000_LR3e-4_SAC_updates_4"
+    save_location = f"../{path[3:30]}"  # 2022-09-02-12-01-31"
+    name = path[31:]  # "SAC_ActionSpace_Full_basecase_bounds_logger_20000_LR3e-4_SAC_updates_1"
+    if load_two_hists:
+        path2 = r"../results/2022-09-05-10-35-28\SAC_ActionSpace_Full_basecase_bounds_logger_20000_LR3e-4_SAC_updates_4_continue_run02-09-2022_12_04_34"
+        save_location2 = f"../{path2[3:30]}"
+        name2 = path[31:]
+    else:
+        pass
+
     if agent == "sac":
-        os.chdir(save_location)
+        # os.chdir(save_location)
         # os.chdir("../results/2022-08-10-10-03-33")
         # path_to_saved_hist = "C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/Fake_API.pkl"
-        path_to_saved_hist = (f'{path}.pkl')
+        path_to_saved_hist = (f'{os.path.abspath(path)}.pkl')
+        if load_two_hists:
+            path_to_saved_hist2 = (f'{os.path.abspath(path2)}.pkl')
         # path_to_saved_hist =(f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation" /
         #                      f"/results/{name}.pkl")  # path to where history was saved
     elif agent == "random":
-        os.chdir("../results/Random")
+        os.chdir(save_location)
         # path_to_saved_hist = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/AspenSimulation/" \
         #                      f"results/{name}.pkl"
-        path_to_saved_hist = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/agent_test.pkl"
+        path_to_saved_hist = f"{path}.pkl"
         # "../results/logging_hist_random_agent.pkl"
 
     hist = pickle.load(open(path_to_saved_hist, "rb"))
     print(f"Mean: {np.mean(hist['episode_return'])*reward_scale}")
     print(f"Max: {max(hist['episode_return'])*reward_scale}")
     print(f"Number of episodes: {len(hist['episode_return'])}")
+    if not load_two_hists:
+        os.chdir(save_location)
+    if load_two_hists:
+        hist2 = pickle.load(open(path_to_saved_hist2, "rb"))
+        print(f"Mean2: {np.mean(hist2['episode_return']) * reward_scale}")
+        print(f"Max2: {max(hist2['episode_return']) * reward_scale}")
+        print(f"Number of episodes2: {len(hist2['episode_return'])}")
+        os.chdir(save_location2)
+        merged_returns = hist['episode_return'] + hist2['episode_return']
+        print(f"Mean_merged: {np.mean(merged_returns) * reward_scale}")
+        print(f"Max_merged: {max(merged_returns) * reward_scale}")
+        print(f"Number of episodes_merged: {len(merged_returns)}")
+
+
+
+
+    episodic_separate1 = hist.get("Separate")
+    non_separate_index1 = []
+
+    for i in range(len(episodic_separate1)):
+        if episodic_separate1[i] == 0:
+            non_separate_index1.append(i)
+    non_separate_convergence_values1 = []
+    episodic_convergence1 = hist.get("Converged")
+    for i in non_separate_index1:
+        non_separate_convergence_values1.append(episodic_convergence1[i])
+
+    z1 = non_separate_convergence_values1.count(2)  # number_of_non_separations_with_convergence_of_2
+    x1 = non_separate_convergence_values1.count(1)  # number_of_non_separations_with_convergence_of_1
+    y1 = non_separate_convergence_values1.count(0)  # number_of_non_separations_with_convergence_of_0
+    w1 = non_separate_convergence_values1.count(-1)  # number_of_non_separations_with_convergence_of_-1
+    print(z1)
+    print(x1)
+    print(y1)
+    print(w1)
+
+    a1 = hist["Separate"].count(1)
+    b1 = hist["Separate"].count(0)
+    c1 = hist['Converged'].count(0) - y1
+    d1 = hist['Converged'].count(1) - x1
+    e1 = hist['Converged'].count(2) - z1
+    f1 = hist['Converged'].count(-1) - w1
+    print(f"Separation1 Y: {a1}")
+    print(f"Separation1 N: {b1}")
+    print(f"Converged1: {c1}")
+    print(f"Errors1: {d1}")
+    print(f"Converged with warnings1: {e1}")
+    print(f"Lost contact1: {f1}")
     hist_keys = list(hist.keys())
 
-    if moving_average:
-        episodes = list(range(0, len(hist['episode_return'])))
+    if load_two_hists:
+
+
+
+        episodic_separate2 = hist2.get("Separate")
+        non_separate_index2 = []
+
+        for i in range(len(episodic_separate2)):
+            if episodic_separate2[i] == 0:
+                non_separate_index2.append(i)
+        non_separate_convergence_values2 = []
+        episodic_convergence2 = hist2.get("Converged")
+        for i in non_separate_index2:
+            non_separate_convergence_values2.append(episodic_convergence2[i])
+
+        z2 = non_separate_convergence_values2.count(2)  # number_of_non_separations_with_convergence_of_2
+        x2 = non_separate_convergence_values2.count(1)  # number_of_non_separations_with_convergence_of_1
+        y2 = non_separate_convergence_values2.count(0)  # number_of_non_separations_with_convergence_of_0
+        w2 = non_separate_convergence_values2.count(-1)  # number_of_non_separations_with_convergence_of_-1
+        print(z2)
+        print(x2)
+        print(y2)
+        print(w2)
+
+        a2 = hist2["Separate"].count(1)
+        b2 = hist2["Separate"].count(0)
+        c2 = hist2['Converged'].count(0) - y2
+        d2 = hist2['Converged'].count(1) - x2
+        e2 = hist2['Converged'].count(2) - z2
+        f2 = hist2['Converged'].count(-1) - w2
+        print(f"Separation2 Y: {a2}")
+        print(f"Separation2 N: {b2}")
+        print(f"Converged2: {c2}")
+        print(f"Errors2: {d2}")
+        print(f"Converged with warnings2: {e2}")
+        print(f"Lost contact2: {f2}")
+
+        print(f"Separation_merged Y: {a1+a2}")
+        print(f"Separation_merged N: {b1+b2}")
+        print(f"Converged_merged: {c1+c2}")
+        print(f"Errors_merged: {d1+d2}")
+        print(f"Converged with warnings_merged: {e1+e2}")
+        print(f"Lost contact_merged: {f1+f2}")
+
+    if moving_average and not load_two_hists:
+        number_of_episodes_hist = len(hist['episode_return'])
+        episodes = list(range(0, number_of_episodes_hist))
         return_ = hist['episode_return']
+        return_ = [i * reward_scale for i in return_]
         data = {'Episodes': episodes,
                 'Return': return_}
         df_return = pd.DataFrame(data)
-        MA = df_return.rolling(window=2000, center=False).mean()
-        df_return['Moving average'] = df_return['Return'].rolling(window=10, center=True).mean()
+        # MA = df_return.rolling(window=2000, center=False).mean()
+        df_return['Moving average'] = df_return['Return'].rolling(window=100, center=True).mean()
         # df_return['Moving average'] = df_return.rolling(window=10, center=True).mean()
         df_return.plot.line(x='Episodes', y=['Return', 'Moving average'])
-        print(os.getcwd())
-        plt.savefig(f'Return.pdf')
+        plt.title(f'Episodic return and moving average')
+        plt.ylabel('Return [M€]')
+        plt.xlabel('Episode')
+        plt.savefig(f'Return_{name}.png')
         plt.show()
+        plt.close()
+    elif moving_average and load_two_hists:
+        number_of_episodes_hist = len(hist['episode_return'])
+        number_of_episodes_hist2 = len(hist2['episode_return'])
+        last_checkpoint_episode = number_of_episodes_hist - (number_of_episodes_hist % 500)
+        episodes = list(range(0, last_checkpoint_episode + number_of_episodes_hist2))
+
+        return_ = hist['episode_return']
+        return_ = return_[:last_checkpoint_episode]
+        return_ = [i * reward_scale for i in return_]
+        return2_ = hist2['episode_return']
+        return2_ = [i * reward_scale for i in return2_]
+        merged_return = return_ + return2_
+        print(f"Mean_merged: {np.mean(merged_return)* reward_scale}")
+        print(f"Max_merged: {max(merged_return)* reward_scale}")
+        print(f"Number of episodes_merged: {len(episodes)}")
+
+        data = {'Episodes': episodes,
+                'Return': merged_return}
+        df_return = pd.DataFrame(data)
+        # MA = df_return.rolling(window=2000, center=False).mean()
+        df_return['Moving average'] = df_return['Return'].rolling(window=100, center=True).mean()
+        # df_return['Moving average'] = df_return.rolling(window=10, center=True).mean()
+        df_return.plot.line(x='Episodes', y=['Return', 'Moving average'])
+        plt.title(f'Episodic return and moving average')
+        plt.ylabel('Return [M€]')
+        plt.xlabel('Episode')
+        plt.savefig(f'merged_Return_{name}.png')
+        plt.show()
+        plt.close()
+
+    if agent == 'sac':
+        agent_keys = {'episode_return', 'Revenue' ,'episode_time', 'actor_loss', 'actor_loss__log_prob_mean',
+                      'actor_loss__min_q_mean', 'alpha', 'alpha_loss',
+                      'critic_loss', 'critic_loss__next_log_prob_mean', 'critic_loss__next_q_mean',
+                      'critic_loss__target_q_mean', 'observations_mean',  'observation_std', 'agent_step_time', 'Separate',
+                      'Streams yet to be acted on', 'Converged'}
+        if version == "old":
+            column_keys = {'Diameter', 'Height', 'n_stages', 'feed_stage_location', 'reflux_ratio', 'reboil_ratio', 'condenser_pressure', }
+
+        elif version == "new":
+            column_keys = {'Diameter', 'Height', 'n_stages', 'feed_stage_location', 'reflux_ratio', 'reboil_ratio',
+                           'condenser_pressure', "a_cnd", "a_rbl", "cost_col", "cost_int", "cost_cnd", "cost_rbl",
+                           "cost_util_cnd", "cost_util_rbl", "RR FirstStream", "RB FirstStream"}
+        time_keys = {'Time to set aspen', 'Time to run aspen', 'Time to retrieve aspen data', 'Time to calculate reward',
+                     'time_to_sample_from_buffer', 'time_to_update_agent'}
+
+        agent_dict = {key: value for key, value in hist.items() if key in agent_keys}
+        if load_two_hists:
+            agent_dict2 = {key: value for key, value in hist2.items() if key in agent_keys}
+            agent_dict2['episode_return'][0] = agent_dict2['episode_return'][0].item()
+            column_dict2 = hist2["Column"]
+            time_dict2 = {key: value for key, value in hist2.items() if key in time_keys}
+            if agent_dict2['Separate'][0]:
+                agent_dict2['Separate'][0] = 1
+            else:
+                agent_dict2['Separate'][0] = 0
+        if version == "old":
+            column_dict = {key: value for key, value in hist.items() if key in column_keys}
+            column_dict['reflux_ratio'][0] = column_dict['reflux_ratio'][0].item()
+            column_dict['reboil_ratio'][0] = column_dict['reboil_ratio'][0].item()
+            column_dict['Diameter'][0] = column_dict['Diameter'][0].item()
+        elif version == "new":
+            # agent_dict['Revenue'][0] = agent_dict['Revenue'][0].item()
+            agent_dict['episode_return'][0] = agent_dict['episode_return'][0].item()
+            column_dict = hist["Column"]
+            # agent_dict2['episode_return'][0] = agent_dict2['episode_return'][0].item()
+            # column_dict2 = hist2["Column"]
+        time_dict = {key: value for key, value in hist.items() if key in time_keys}
 
 
-    agent_keys = {'episode_return', 'Revenue' ,'episode_time', 'actor_loss', 'actor_loss__log_prob_mean',
-                  'actor_loss__min_q_mean', 'alpha', 'alpha_loss',
-                  'critic_loss', 'critic_loss__next_log_prob_mean', 'critic_loss__next_q_mean',
-                  'critic_loss__target_q_mean', 'observations_mean',  'observation_std', 'agent_step_time', 'Separate',
-                  'Streams yet to be acted on', 'Converged'}
-    if version == "old":
-        column_keys = {'Diameter', 'Height', 'n_stages', 'feed_stage_location', 'reflux_ratio', 'reboil_ratio', 'condenser_pressure', }
+        if agent_dict['Separate'][0]:
+            agent_dict['Separate'][0] = 1
+        else:
+            agent_dict['Separate'][0] = 0
 
-    elif version == "new":
-        column_keys = {'Diameter', 'Height', 'n_stages', 'feed_stage_location', 'reflux_ratio', 'reboil_ratio',
+        # plot_history(agent_spec)
+        agent_plots = ["actor_loss", "actor_log_prob", "critic_loss", "alpha_loss"]
+        if load_two_hists:
+            agent_dict_png = {"actor_loss": agent_dict["actor_loss"] + agent_dict2["actor_loss"],
+                           "critic_loss": agent_dict["critic_loss"] + agent_dict2["critic_loss"],
+                           "alpha_loss": agent_dict["alpha_loss"] + agent_dict2["alpha_loss"]}
+        else:
+            agent_dict_png = {"actor_loss": agent_dict["actor_loss"],
+                              "actor_log_prob": agent_dict["actor_loss__log_prob_mean"],
+                              "critic_loss": agent_dict["critic_loss"],
+                              "alpha_loss": agent_dict["alpha_loss"]}
+        for i in agent_plots:
+            if not load_two_hists:
+                plt.plot(agent_dict_png[i])
+                if i == "actor_loss":
+                    naming = "Actor loss"
+                elif i== "actor_log_prob":
+                    naming = "Actor log prob"
+                elif i == "critic_loss":
+                    naming = "Critic loss"
+                elif i == "alpha_loss":
+                    naming = "Alpha loss"
+                plt.ylabel(naming)
+                plt.title(naming)
+                plt.xlabel("Agent update")
+                plt.savefig(f"{i}_.png")
+                plt.show()
+                plt.close()
+
+        plot_history(agent_dict)
+        # os.chdir(save_location)
+        plt.savefig(f'Agent_data_{name}.pdf')
+        plt.show()
+        plt.close()
+
+    elif agent == "random":
+        column_keys = {'episode_return', 'Revenue' ,'episode_time', 'Diameter', 'Height', 'n_stages', 'feed_stage_location', 'reflux_ratio', 'reboil_ratio',
                        'condenser_pressure', "a_cnd", "a_rbl", "cost_col", "cost_int", "cost_cnd", "cost_rbl",
-                       "cost_util_cnd", "cost_util_rbl"}
-    time_keys = {'Time to set aspen', 'Time to run aspen', 'Time to retrieve aspen data', 'Time to calculate reward',
-                 'time_to_sample_from_buffer', 'time_to_update_agent'}
-
-    agent_dict = {key: value for key, value in hist.items() if key in agent_keys}
-    if version == "old":
-        column_dict = {key: value for key, value in hist.items() if key in column_keys}
-        column_dict['reflux_ratio'][0] = column_dict['reflux_ratio'][0].item()
-        column_dict['reboil_ratio'][0] = column_dict['reboil_ratio'][0].item()
-        column_dict['Diameter'][0] = column_dict['Diameter'][0].item()
-    elif version == "new":
-        column_dict = hist["Column"]
-    time_dict = {key: value for key, value in hist.items() if key in time_keys}
-
-    if agent_dict['Separate'][0]:
-        agent_dict['Separate'][0] = 1
-    else:
-        agent_dict['Separate'][0] = 0
+                       "cost_util_cnd", "cost_util_rbl", "RR FirstStream", "RB FirstStream", 'Separate',
+                      'Streams yet to be acted on', 'Converged'}
+        time_keys = {'Time to set aspen', 'Time to run aspen', 'Time to retrieve aspen data',
+                     'Time to calculate reward',
+                     'time_to_sample_from_buffer', 'time_to_update_agent'}
 
 
-    # # plot_history(agent_spec)
-    # plot_history(agent_dict)
+        if version == "old":
+            column_dict = {key: value for key, value in hist.items() if key in column_keys}
+            column_dict['reflux_ratio'][0] = column_dict['reflux_ratio'][0].item()
+            column_dict['reboil_ratio'][0] = column_dict['reboil_ratio'][0].item()
+            column_dict['Diameter'][0] = column_dict['Diameter'][0].item()
+        elif version == "new":
+            column_dict = hist["Column"]
+        time_dict = {key: value for key, value in hist.items() if key in time_keys}
+
+    if version == "new":
+        n_stages = []
+        feed_stage_location = []
+        reflux_ratio = []
+        reboil_ratio = []
+        condenser_pressure = []
+        condenser_temperature = []
+        reboiler_temperature = []
+        condenser_duty = []
+        reboiler_duty = []
+        diameter = []
+        height = []
+        if not load_two_hists:
+            first_RR = hist["reflux_ratioFirst stream"]
+            first_RR[0] = float(first_RR[0])
+            first_BR = hist["reboil_ratioFirst stream"]
+            first_BR[0] = float(first_BR[0])
+            first_n_stages = hist["n_stagesFirst stream"]
+            first_cnd_pressure = hist["condensor_pressureFirst stream"]
+            first_cnd_pressure[0] = float(first_cnd_pressure[0])
+        if load_two_hists:
+
+            first_RR1 = hist["reflux_ratioFirst stream"]
+            first_RR1[0] = float(first_RR1[0])
+            first_RR1 = first_RR1[:last_checkpoint_episode]
+            first_RR2 = hist2["reflux_ratioFirst stream"]
+            first_RR2[0] = float(first_RR2[0])
+            merged_rr = first_RR1 + first_RR2
+            first_BR1 = hist["reboil_ratioFirst stream"]
+            first_BR1[0] = float(first_BR1[0])
+            first_BR1 = first_BR1[:last_checkpoint_episode]
+            first_BR2 = hist2["reboil_ratioFirst stream"]
+            first_BR2[0] = float(first_BR2[0])
+            merged_br = first_BR1 + first_BR2
+            first_n_stages1 = hist["n_stagesFirst stream"]
+            first_n_stages2 = hist2["n_stagesFirst stream"]
+            first_n_stages1 = first_n_stages1[:last_checkpoint_episode]
+            merged_nstages = first_n_stages1 + first_n_stages2
+            first_cnd_pressure1 = hist["condensor_pressureFirst stream"]
+            first_cnd_pressure1[0] = float(first_cnd_pressure1[0])
+            first_cnd_pressure1 = first_cnd_pressure1[:last_checkpoint_episode]
+            first_cnd_pressure2 = hist2["condensor_pressureFirst stream"]
+            first_cnd_pressure2[0] = float(first_cnd_pressure2[0])
+            merged_cnd_press = first_cnd_pressure1 + first_cnd_pressure2
+
+        for k in column_dict:
+            n_stages.append(k.input_spec.n_stages)
+            feed_stage_location.append(k.input_spec.feed_stage_location)
+            reflux_ratio.append(float(k.input_spec.reflux_ratio))
+            reboil_ratio.append(float(k.input_spec.reboil_ratio))
+            condenser_pressure.append(float(k.input_spec.condensor_pressure))
+            condenser_temperature.append(float(k.output_spec.condenser_temperature))
+            reboiler_temperature.append(float(k.output_spec.reboiler_temperature))
+            condenser_duty.append(float(k.output_spec.condenser_duty))
+            reboiler_duty.append(float(k.output_spec.reboiler_duty))
+            diameter.append(float(k.diameter))
+            height.append(float(k.height))
+        if load_two_hists:
+            for j in column_dict2:
+                n_stages.append(j.input_spec.n_stages)
+                feed_stage_location.append(j.input_spec.feed_stage_location)
+                reflux_ratio.append(float(j.input_spec.reflux_ratio))
+                reboil_ratio.append(float(j.input_spec.reboil_ratio))
+                condenser_pressure.append(float(j.input_spec.condensor_pressure))
+                condenser_temperature.append(float(j.output_spec.condenser_temperature))
+                reboiler_temperature.append(float(j.output_spec.reboiler_temperature))
+                condenser_duty.append(float(j.output_spec.condenser_duty))
+                reboiler_duty.append(float(j.output_spec.reboiler_duty))
+                diameter.append(float(j.diameter))
+                height.append(float(j.height))
+
+
+        if not load_two_hists:
+            column_spec = {"height": height,
+                           "n_stages": n_stages,
+                           "Diameter": diameter,
+                           "RR": reflux_ratio,
+                           "RB": reboil_ratio,
+                           "n_stages FirstStream": first_n_stages,
+                           "cnd_pressure FirstStream": first_cnd_pressure,
+                           "RR FirstStream": first_RR,
+                           "BR FirstStream": first_BR,
+                           "Condenser pressure": condenser_pressure,
+                           "Condenser temperature": condenser_temperature,
+                           "Reboiler temperature": reboiler_temperature,
+                           "Condenser duty": condenser_duty,
+                           "Reboiler duty": reboiler_duty,
+                           }
+        elif load_two_hists:
+            column_spec = {"height": height,
+                           "n_stages": n_stages,
+                           "Diameter": diameter,
+                           "RR": reflux_ratio,
+                           "RB": reboil_ratio,
+                           "n_stages FirstStream": merged_nstages,
+                           "cnd_pressure FirstStream": merged_cnd_press,
+                           "RR FirstStream": merged_rr,
+                           "BR FirstStream": merged_br,
+                           "Condenser pressure": condenser_pressure,
+                           "Condenser temperature": condenser_temperature,
+                           "Reboiler temperature": reboiler_temperature,
+                           "Condenser duty": condenser_duty,
+                           "Reboiler duty": reboiler_duty,
+                           }
+
+    if create_png and not load_two_hists:
+
+
+        plt.plot(first_cnd_pressure)
+        plt.ylabel("Condenser pressure [bar]")
+        plt.title("Condenser pressure of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"CND_Press_.png")
+        plt.show()
+        plt.close()
+        plt.plot(first_RR)
+        plt.ylabel("Reflux ratio [-]")
+        plt.title("Reflux ratio of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"RR_.png")
+        plt.show()
+        plt.close()
+        plt.plot(first_BR)
+        plt.ylabel("Boilup ratio [-]")
+        plt.title("Boilup ratio of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"BR_.png")
+        plt.show()
+        plt.close()
+        plt.plot(condenser_duty)
+        plt.ylabel("Condenser duty [MW]")
+        plt.title("Condenser duty over all columns")
+        plt.xlabel("Aspen run")
+        plt.savefig(f"CND_DUTY_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(reboiler_duty)
+        plt.ylabel("Reboiler duty [MW]")
+        plt.title("Reboiler duty over all columns")
+        plt.xlabel("Aspen run")
+        plt.savefig(f"RBL_DUTY_.png")
+        plt.show()
+        plt.close()
+
+    if create_png and load_two_hists:
+        plt.plot(merged_nstages)
+        plt.ylabel("Number of stages")
+        plt.title("Number of stages of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"n_Stages_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(merged_cnd_press)
+        plt.ylabel("Condenser pressure [bar]")
+        plt.title("Condenser pressure of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"CND_Press_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(merged_rr)
+        plt.ylabel("Reflux ratio [-]")
+        plt.title("Reflux ratio of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"RR_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(merged_br)
+        plt.ylabel("Reboil ratio [-]")
+        plt.title("Reboil ratio of first column")
+        plt.xlabel("Episode")
+        plt.savefig(f"BR_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(condenser_duty)
+        plt.ylabel("Condenser duty [MW]")
+        plt.title("Condenser duty over all columns")
+        plt.xlabel("Episode")
+        plt.savefig(f"CND_DUTY_.png")
+        plt.show()
+        plt.close()
+
+        plt.plot(reboiler_duty)
+        plt.ylabel("Reboiler duty [MW]")
+        plt.title("Reboiler duty over all columns")
+        plt.xlabel("Episode")
+        plt.savefig(f"RBL_DUTY_.png")
+        plt.show()
+        plt.close()
+
+    plot_history(column_spec)
     # os.chdir(save_location)
-    # plt.savefig(f'Agent_data_{name}.pdf')
-    # plt.show()
-    #
-    # plot_history(column_dict)
+    plt.savefig(f'Column_data_{name}.pdf')
+    plt.show()
+
+    plot_history(time_dict)
     # os.chdir(save_location)
-    # plt.savefig(f'Column_data_{name}.pdf')
-    # plt.show()
-    #
-    # plot_history(time_dict)
-    # os.chdir(save_location)
-    # plt.savefig(f'Time_data_{name}.pdf')
-    # plt.show()
+    plt.savefig(f'Time_data_{name}.pdf')
+    plt.show()
 
 
     """Index for episode with heighest profit"""
@@ -373,7 +766,7 @@ if __name__ == '__main__':
                 iC5_conc.append(conc_iC5)
                 nC5_conc.append(conc_nC5)
 
-        molars = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+        molars = ["", ] * len(stream_number)
         df_streams = pd.DataFrame({'Stream number': stream_number,
                                    "Is product": stream_product,
                                    "Is outlet": stream_outlet,
