@@ -42,10 +42,14 @@ def train(n_iterations: int,
     current_time = datetime.now()
     current_time = current_time.strftime("%H-%M-%S")
     today = today.strftime("%Y-%m-%d")
+
+    "Uncomment for measuring power consumption on Linux devices"
     # pyRAPL.setup()
     # meter = pyRAPL.Measurement('bar')
-    checkpoint_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/checkpoint"
-    logger_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
+
+    "Define where agent checkpoints and the logger is saved, ideally a relative path"
+    checkpoint_path = f"../results/{today}-{current_time}/checkpoint"
+    logger_path = f"../results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
 
     isExist = os.path.exists(path=checkpoint_path)
     if not isExist:
@@ -117,7 +121,7 @@ def train(n_iterations: int,
             buffer_state = buffer.add(transition, buffer_state)
             previous_timestep = timestep
 
-            step_metrics = env.info
+            step_metrics = env.info  # Save the data from the environment in a dictionary, which is used for later evaluation
 
             step_metrics["Contact"] = env.contact
             step_metrics["Converged"] = env.converged
@@ -230,18 +234,24 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 20000
-    reward_scale = 10
-    punishment = -10
-    max_steps = 4
-    batch_size = 1  # 32
-    n_sac_updates_per_episode = 4
+    n_iterations = 20000    # Number of episodes
+    reward_scale = 10       # Reward scalar
+    punishment = -10        # Punishment for "bad behaviour"
+    max_steps = 4           # Number of steps per episode, i.e. number of allowed columns
+    batch_size = 32
+    n_sac_updates_per_episode = 4  # Number of times the agent networks update
     do_checkpointing = True
     iter_per_checkpoint = 500  # how often to save checkpoints
     agent_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\agent_state_iter10000test"  # None
     buffer_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\buffer_state_iter_10000test"  # None
 
     # You can replay the fake flowsheet here with the actual aspen flowsheet.
+    # Visibility: True (Show Aspen window); False (Do not show Aspen)
+    # Suppress: True (Suppress messages in Aspen); False (Show Aspen messages),
+    # max_solve_iterations: Number of iterations allowed in Aspen,
+    # Purity: Required product purity,
+    # small_action_space:   True (Agent sets n_stages, feed_stage, cnd_press, RR/BR ratio)
+    #                       False (User defined parameters are fixed, see env._action_to_column_spec)
     env = AspenDistillation(flowsheet_api=AspenAPI(visibility=False, suppress=True, max_solve_iterations=100),  # FakeDistillationAPI(),
                             product_spec=ProductSpecification(purity=0.95),
                             max_steps=max_steps, small_action_space=False, reward_scale=reward_scale, punishment=punishment)

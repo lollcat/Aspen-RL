@@ -151,6 +151,8 @@ class AspenDistillation(dm_env.Environment):
                                                                           column_input=column_input_spec)
             time_to_run_aspen = time.time() - start
             if self.contact == 1 and (self.converged == 0 or self.converged == 2):
+                # self.contact == 1 -> Contact with Aspen;
+                # self.converged == 0 -> Flowsheet converged; self.converged == 2 -> Flowsheet converged with warnings
                 start = time.time()
                 self.tops_stream, self.bottoms_stream, column_output_spec = \
                 self._get_simulated_flowsheet_info(column_input_spec)
@@ -174,6 +176,7 @@ class AspenDistillation(dm_env.Environment):
                 done = Done((self.tops_stream.is_outlet, self.bottoms_stream.is_outlet), done_overall)
 
             elif self.contact == 0 or self.converged == 1:
+                # self.contact == 0 -> lost contact with Aspen, self.converged ==1 -> Error in flowsheet
                 # assert not (self.contact == 0 and self.converged == 1)
                 if self.converged:
                     self.info["Column_error"] = column_input_spec
@@ -277,7 +280,6 @@ class AspenDistillation(dm_env.Environment):
                     condensor_pressure=condensor_pressure)
             else:
                 n_stages = 77
-                # feed as fraction between stage 0 and n_stages
                 feed_stage_location = 44
                 reflux_ratio = np.interp(continuous_action[0], [-1, 1], self._reflux_ratio_bounds)
                 reboil_ratio = np.interp(continuous_action[1], [-1, 1], self._reflux_ratio_bounds)
@@ -344,7 +346,7 @@ class AspenDistillation(dm_env.Environment):
 
     def _get_upcoming_stream(self) -> Stream:
         """For the next action, get a stream from the
-        self._stream_numbers_yet_to_be_acted_on list."""
+        self._stream_numbers_yet_to_be_acted_on list based on highest molar flow."""
         if self.contact == 1 and ((self.choose_separate and (self.converged == 0 or self.converged == 2)) or \
            (self._steps > 1 and not self.choose_separate)):
             max_flow_index = self._flow_yet_to_be_acted_on.index(max(self._flow_yet_to_be_acted_on))
@@ -387,12 +389,12 @@ class AspenDistillation(dm_env.Environment):
                          column_output_spec: ColumnOutputSpecification) -> float:
         """Calculate potential revenue from selling top streams and bottoms streams, and compare
         relative to selling the input stream, subtract TAC and normalise."""
-        # reward_scaler = 10  # reward 100M€
         total_annual_cost, col_info = self.flowsheet_api.get_column_cost(feed_stream.specification,
                                                   column_input_specification=column_input_spec,
                                                   column_output_specification=column_output_spec)
         total_annual_revenue = tops_stream.value + bottoms_stream.value
 
+        # Saving cost and column data
         self.info["Revenue"] = total_annual_revenue
         self.info["Diameter"] = col_info[1]
         self.info["Height"] = col_info[0]
