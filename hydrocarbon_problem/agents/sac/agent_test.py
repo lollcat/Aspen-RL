@@ -3,6 +3,7 @@ import os
 import chex
 import jax.random
 import jax.numpy as jnp
+import pickle
 import optax
 import numpy as np
 from tqdm import tqdm
@@ -68,8 +69,16 @@ def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
         agent = agent._replace(state=agent_state)
         chex.assert_tree_all_finite(agent_state)
         logger.write(info)
+    path_to_saved_hist = r"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/sac/agent_test.pkl"
+    hist = pickle.load(open(path_to_saved_hist, "rb"))
+
+    for key in hist:
+        a = hist[key]
+        a[0] = float(a[0])
     plot_history(logger.history)
     plt.show()
+    name = "test"
+    plt.savefig(f'Agent_data_{name}.pdf')
     # state, info = agent.learner._unjitted_update_step(agent_state, batch)
 
 
@@ -77,15 +86,15 @@ def test_agent_overfit(agent: Agent, env: AspenDistillation) -> None:
 if __name__ == '__main__':
     from hydrocarbon_problem.api.fake_api import FakeDistillationAPI
     from hydrocarbon_problem.api.aspen_api import AspenAPI
-    env = AspenDistillation(flowsheet_api=AspenAPI()) #FakeDistillationAPI()
+    env = AspenDistillation(flowsheet_api=FakeDistillationAPI()) #FakeDistillationAPI()AspenAPI()
     sac_net = create_sac_networks(env=env,
-                                  policy_hidden_units=(32,32),
-                                  q_value_hidden_units=(32, 32))
+                                  policy_hidden_units=(128,128),
+                                  q_value_hidden_units=(128, 128))
 
     agent = create_agent(networks=sac_net,
                          rng_key=jax.random.PRNGKey(0),
-                         policy_optimizer=optax.adam(1e-3),
-                         q_optimizer=optax.adam(1e-3),
+                         policy_optimizer=optax.adam(3e-4),
+                         q_optimizer=optax.adam(3e-4),
                          auto_tune_alpha=True
                          )
 

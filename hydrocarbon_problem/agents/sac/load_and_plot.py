@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     agent = "sac"
-    load_two_hists = True
+    load_two_hists = False
     create_png = True
     column_table = False
     stream_table = False
-    moving_average = False
+    moving_average = True
     reward_scale = 10
     version = "new"
     now = datetime.now()
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     today = date.today()
     print(os.getcwd())
 
-    path = r"../results/2022-09-02-12-04-34\SAC_ActionSpace_Full_basecase_bounds_logger_20000_LR3e-4_SAC_updates_4"
+    path = r"../results/2022-09-16-11-13-04\SAC_ActionSpace_Full_logger_20000_LRalpha7_5e-5_SAC_updates_4_steps_4"
     save_location = f"../{path[3:30]}"  # 2022-09-02-12-01-31"
     name = path[31:]  # "SAC_ActionSpace_Full_basecase_bounds_logger_20000_LR3e-4_SAC_updates_1"
     if load_two_hists:
@@ -490,12 +490,13 @@ if __name__ == '__main__':
     # os.chdir(save_location)
     plt.savefig(f'Column_data_{name}.pdf')
     plt.show()
+    plt.close()
 
     plot_history(time_dict)
     # os.chdir(save_location)
     plt.savefig(f'Time_data_{name}.pdf')
     plt.show()
-
+    plt.close()
 
     """Index for episode with heighest profit"""
     episodic_returns = agent_dict.get("episode_return")

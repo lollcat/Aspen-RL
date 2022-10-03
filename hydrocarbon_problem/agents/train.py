@@ -42,7 +42,8 @@ def train(n_iterations: int,
     current_time = datetime.now()
     current_time = current_time.strftime("%H-%M-%S")
     today = today.strftime("%Y-%m-%d")
-
+    # pyRAPL.setup()
+    # meter = pyRAPL.Measurement('bar')
     checkpoint_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/checkpoint"
     logger_path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
 
@@ -83,6 +84,7 @@ def train(n_iterations: int,
     # now run the training loop
     for i in pbar:
         # run an episode, adding the new experience to the buffer
+
         episode_return = 0.0
         timestep = env.reset()
         previous_timestep = timestep
@@ -90,6 +92,7 @@ def train(n_iterations: int,
         counter = 1
         while not timestep.last():
             # get the action
+
             key, subkey = jax.random.split(key)
             action = agent.select_action(agent.state, timestep.observation.upcoming_state,
                                          subkey)
@@ -136,6 +139,7 @@ def train(n_iterations: int,
             elif env.choose_separate and (not env.contact or env.converged == 1):
                 step_metrics["Unconverged"] = step_metrics
             logger.write(step_metrics)
+
             counter += 1
 
         # save useful metrics
@@ -199,7 +203,7 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "sac"
+    agent_type = "random"
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -230,7 +234,7 @@ if __name__ == '__main__':
     reward_scale = 10
     punishment = -10
     max_steps = 4
-    batch_size = 32
+    batch_size = 1  # 32
     n_sac_updates_per_episode = 4
     do_checkpointing = True
     iter_per_checkpoint = 500  # how often to save checkpoints
@@ -257,8 +261,8 @@ if __name__ == '__main__':
         assert agent_type == "random"
         agent = create_random_agent(env)
 
-    min_sample_length = batch_size * 10
-    max_buffer_length = batch_size * 10000
+    min_sample_length = batch_size * 1#0
+    max_buffer_length = batch_size * 10#000
     rng_key = jax.random.PRNGKey(0)
     buffer = ReplayBuffer(min_sample_length=min_sample_length, max_length=max_buffer_length)
 
