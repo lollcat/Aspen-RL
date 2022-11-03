@@ -5,7 +5,7 @@ import chex
 import jax.numpy as jnp
 import jax
 
-from hydrocarbon_problem.agents.sac import sum_tree
+from hydrocarbon_problem.agents.sac_pr import sum_tree
 
 Transition = chex.ArrayTree
 Batch = Transition
