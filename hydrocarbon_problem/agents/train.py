@@ -10,7 +10,6 @@ from tqdm import tqdm
 from functools import partial
 import os
 from datetime import datetime, date
-from hydrocarbon_problem.api.aspen_api import AspenAPI
 
 from acme.jax.savers import restore_from_path, save_to_path
 
@@ -22,7 +21,7 @@ from hydrocarbon_problem.agents.sac.create_networks import create_sac_networks
 from hydrocarbon_problem.env.env import AspenDistillation, ProductSpecification
 from hydrocarbon_problem.agents.base import NextObservation, Transition
 from hydrocarbon_problem.agents.logger import ListLogger, plot_history
-from hydrocarbon_problem.api.Simulation import Simulation
+
 
 
 def train(n_iterations: int,
@@ -36,20 +35,8 @@ def train(n_iterations: int,
           buffer_state_load_dir: Optional[str] = None,
           do_checkpointing: bool = False,  # if we save checkpoints
           iter_per_checkpoint: int = 100,  # how often we save checkpoints
-          set_agent: str = "random"
+          set_agent: str = "random",
           ):
-    today = date.today()
-    current_time = datetime.now()
-    current_time = current_time.strftime("%H-%M-%S")
-    today = today.strftime("%Y-%m-%d")
-
-    "Uncomment for measuring power consumption on Linux devices"
-    # pyRAPL.setup()
-    # meter = pyRAPL.Measurement('bar')
-
-    "Define where agent checkpoints and the logger is saved, ideally a relative path"
-    checkpoint_path = f"../results/{today}-{current_time}/checkpoint"
-    logger_path = f"../results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
 
     isExist = os.path.exists(path=checkpoint_path)
     if not isExist:
@@ -188,9 +175,11 @@ def train(n_iterations: int,
             logger.write({"time_to_sample_from_buffer": time_to_sample_from_buffer})
             logger.write({"time_to_update_agent": time_to_update_agent})
 
-        if (i % 500) == 0:
-            print("500 episodes passed, restart Aspen")
-            env.flowsheet_api.restart_aspen()
+        fake = isinstance(api, FakeDistillationAPI)
+        if not fake:
+            if (i % 500) == 0:
+                print("500 episodes passed, restart Aspen")
+                env.flowsheet_api.restart_aspen()
 
         if do_checkpointing:
             if i % iter_per_checkpoint == 0:
@@ -207,7 +196,12 @@ def train(n_iterations: int,
 
 if __name__ == '__main__':
 
-    agent_type = "random"
+    agent_type = "sac"
+
+    current_time = datetime.now()
+    current_time = current_time.strftime("%H-%M-%S")
+    today = date.today()
+    today = today.strftime("%Y-%m-%d")
 
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
@@ -218,15 +212,10 @@ if __name__ == '__main__':
         # If we don't want to print warnings.
         # Should be used with care.
         import logging
-        current_time = datetime.now()
-        current_time = current_time.strftime("%H-%M-%S")
-        today = date.today()
-        today = today.strftime("%Y-%m-%d")
-        path = f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}"
+        path = os.getcwd() #  f"C:/Users/s2399016/Documents/Aspen-RL_v2/Aspen-RL/hydrocarbon_problem/agents/results/{today}"
         isExist = os.path.exists(path=path)
         if not isExist:
             os.makedirs(path)
-        # os.chdir("results")
         logger = logging.getLogger("root")
 
         class CheckTypesFilter(logging.Filter):
@@ -234,25 +223,31 @@ if __name__ == '__main__':
                 return "check_types" not in record.getMessage()
         logger.addFilter(CheckTypesFilter())
 
-    n_iterations = 20000    # Number of episodes
+    n_iterations = 2    # Number of episodes
     reward_scale = 10       # Reward scalar
     punishment = -10        # Punishment for "bad behaviour"
     max_steps = 4           # Number of steps per episode, i.e. number of allowed columns
-    batch_size = 32
+    batch_size = 1
     n_sac_updates_per_episode = 4  # Number of times the agent networks update
     do_checkpointing = True
     iter_per_checkpoint = 500  # how often to save checkpoints
-    agent_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\agent_state_iter10000test"  # None
-    buffer_checkpoint_load_dir = None  # r"C:\Users\s2399016\Documents\Aspen-RL_v2\Aspen-RL\hydrocarbon_problem\agents\results\2022-09-02-12-01-31\checkpoint\buffer_state_iter_10000test"  # None
+    agent_checkpoint_load_dir = None
+    buffer_checkpoint_load_dir = None
+    api = FakeDistillationAPI()
 
-    # You can replay the fake flowsheet here with the actual aspen flowsheet.
+    "Define where agent checkpoints and the logger is saved, ideally a relative path"
+    cwd = os.getcwd()
+    checkpoint_path = f"{cwd}/results/{today}-{current_time}/checkpoint"
+    logger_path = f"{cwd}/results/{today}-{current_time}/SAC_ActionSpace_Full_logger_{n_iterations}_LRalpha7_5e-5_SAC_updates_{n_sac_updates_per_episode}_steps_{max_steps}"
+
+    # You can replace the fake flowsheet here with the actual aspen flowsheet.
     # Visibility: True (Show Aspen window); False (Do not show Aspen)
     # Suppress: True (Suppress messages in Aspen); False (Show Aspen messages),
     # max_solve_iterations: Number of iterations allowed in Aspen,
     # Purity: Required product purity,
     # small_action_space:   True (Agent sets n_stages, feed_stage, cnd_press, RR/BR ratio)
     #                       False (User defined parameters are fixed, see env._action_to_column_spec)
-    env = AspenDistillation(flowsheet_api=AspenAPI(visibility=False, suppress=True, max_solve_iterations=100),  # FakeDistillationAPI(),
+    env = AspenDistillation(flowsheet_api=api,
                             product_spec=ProductSpecification(purity=0.95),
                             max_steps=max_steps, small_action_space=False, reward_scale=reward_scale, punishment=punishment)
 

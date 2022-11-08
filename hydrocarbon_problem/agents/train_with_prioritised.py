@@ -138,6 +138,7 @@ def train(n_iterations: int,
 
 
 if __name__ == '__main__':
+
     DISABLE_JIT = False  # useful for debugging
     if DISABLE_JIT:
         from jax.config import config
