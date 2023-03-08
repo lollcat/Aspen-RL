@@ -7,4 +7,4 @@ Ultimately, we found Aspen simulator to be too slow to be a good option for RL.
 For other work on the topic of RL for chemical engineering process synthesis see the [RL for process design](https://github.com/lollcat/RL-Process-Design) repo and the [Distillation Train Gym](https://github.com/lollcat/DistillationTrain-Gym) repo. 
 
 
-Our Aspen-Python API (see [here](https://github.com/lollcat/Aspen-RL/blob/main/hydrocarbon_problem/api/aspen_api.py) may be of interest for those who wish to control Aspen simulations via python code. 
+Our Aspen-Python API (see [here](https://github.com/lollcat/Aspen-RL/blob/main/hydrocarbon_problem/api/aspen_api.py)) may be of interest for those who wish to control Aspen simulations via python code. 
